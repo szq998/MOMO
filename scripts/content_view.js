@@ -4,7 +4,7 @@ const ContentType = {
 }
 
 class ContentView {
-    constructor(id, layout) {
+    constructor(id) {
         this.id = id
 
         this.events = {}
@@ -41,7 +41,6 @@ class ContentView {
             type: "view",
             props: this.props,
             views: [imageView, markdownView],
-            layout: layout,
             events: this.events
         } // toRender
 
@@ -50,11 +49,22 @@ class ContentView {
         })
     } // constructor
 
+    setLayout(layout) {
+        if (!$(this.id))
+            if (typeof layout == "function") {
+                this.toRender.layout = layout
+                return true
+            } else console.log("Error: layout is not of function type.")
+        else  console.log("Error: this method must be called before render.")
+        return false
+    }
+
     setEvents(eName, eHandler) {
         if (!$(this.id)) {
             this.events[eName] = eHandler
             return true
         }
+        console.log("Error: this method must be called before render.")
         return false
     } // setEvents
 
@@ -63,6 +73,7 @@ class ContentView {
             this.props[pName] = pVal
             return true
         }
+        console.log("Error: this method must be called before render.")
         return false
     }
 
@@ -97,15 +108,13 @@ class ContentView {
                 this.contentType == ContentType.markdown
             ) {
                 this.content = null
-                
+
                 $(this.imageViewId).hidden = false
                 $(this.markdownViewId).hidden = true
                 $(this.imageViewId).contentMode = 1
                 $(this.imageViewId).image = $image("doc.richtext")
-//                $(this.markdownViewId).content = `# <center>无内容</center>`
-            } else {
-                return false
-            }
+                //                $(this.markdownViewId).content = `# <center>无内容</center>`
+            } else return false
         } else {
             console.log("Error: this method must be called after render.")
             return false
@@ -147,9 +156,7 @@ class ContentView {
 
                 this.content = content
                 $(this.markdownViewId).content = content
-            } else {
-                return false
-            }
+            } else return false
         } else {
             console.log("Error: this method must be called after render.")
             return false
@@ -174,35 +181,4 @@ class ContentView {
     } // quickLook
 } // class ContentView
 
-let cv = new ContentView("text", (make, view) => {
-    make.size.equalTo($size(200, 200))
-    make.center.equalTo(view.super)
-})
-
-cv.setEvents("longPressed", () => {
-    //cv.changeContent(ContentType.markdown, `# <center>无内容</center>`)
-    $(cv.imageViewId).contentMode = 1
-    cv.showNoContent(ContentType.image)
-    $(cv.imageViewId).contentMode = 1
-})
-
-cv.setEvents("doubleTapped", () => {
-    //cv.changeContent(ContentType.image, $image("photo.fill"))
-    cv.showNoContent(ContentType.markdown)
-})
-
-cv.setEvents("tapped", sender => {
-    sender.relayout()
-    cv.changeContent(ContentType.image, $image("photo"))
-})
-
-cv.setProps("borderWidth", 1)
-
-$ui.render({
-    views: [cv.toRender],
-    events: {
-        appeared: () => {
-            console.log("appeared")
-        }
-    }
-})
+module.exports = ContentView
