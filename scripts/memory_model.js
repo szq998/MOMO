@@ -39,15 +39,15 @@ class MemoryModel {
     } // constructor
 
     start(num) {
-        let memoryItemSnapshots = this.memoryDB.getMostForgetableMemorySnapshots(
+        let memorySnapshots = this.memoryDB.getMostForgetableMemorySnapshots(
             num
         )
 
-        let memoryItems = new Array(memoryItemSnapshots.length)
-        memoryItemSnapshots.forEach((item, index) => {
+        let memoryItems = new Array(memorySnapshots.length)
+        memorySnapshots.forEach((item, index) => {
             memoryItems[index] = {
                 id: item.id,
-                type: item.type,
+                contentType: item.type,
                 description: item.description,
                 memoryDegree: item.memoryDegree,
 
@@ -110,8 +110,16 @@ class MemoryModel {
         this.currLItem = this.memoryList.getNextItem(this.currLItem)
     } // forget
 
+    getCurrentSnapshots() {
+       return this.currLItem ? this.currLItem.data : undefined
+    }
+
     getCurrentId() {
         return this.currLItem ? this.currLItem.data.id : undefined
+    }
+
+    getCurrentContentType () {
+      return this.currLItem ? this.currLItem.data.contentType : undefined
     }
 
     getCurrentDescription() {

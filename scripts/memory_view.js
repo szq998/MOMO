@@ -1,3 +1,10 @@
+let ContentView = require("./content_view.js")
+
+const ContentType = {
+  image: 0,
+  markdown: 1
+}
+
 const IMAGE_WIDTH = 400
 const IMAGE_HEIGHT_WIDTH_RATIO = 2 / 3
 const IMAGE_SIZE = $size(IMAGE_WIDTH, IMAGE_WIDTH / IMAGE_HEIGHT_WIDTH_RATIO)
@@ -5,20 +12,10 @@ const REAL_IMAGE_SIZE = $size(IMAGE_SIZE.width * $device.info.screen.scale, IMAG
 
 const CLOSE_THRESHOLD = 80
 
-class ContentView {
+class MovableContentView extends ContentView {
     constructor(id) {
-        this.id = id
-        this.innerContentViewId = "inner_content_of_" + id
-        this.imageSrc = null
-
-        this.innerContentView = {
-            type: "image",
-            props: {
-                id: this.innerContentViewId
-            },
-            layout: $layout.fill
-        }
-
+        super(id)
+        
         this.layoutForSize = (make, view) => {
             make.width.equalTo(IMAGE_WIDTH)
             make.width.lessThanOrEqualTo(view.super.width).offset(-30)
@@ -29,33 +26,9 @@ class ContentView {
             this.layoutForSize(make, view)
             make.center.equalTo(view.super)
         }
-
-        this.toRender = {
-            type: "view",
-            props: {
-                id: id,
-                cornerRadius: 10,
-                clipsToBounds: true
-            },
-            views: [this.innerContentView],
-            layout: this.initialLayout,
-            events: {
-                tapped: sender => {
-                    $quicklook.open({
-                        data: $data({ path: this.imageSrc })
-                    }) // quicklook
-                } // tapped
-            } // events
-        } // toRender
+        
+        this.setProps("cornerRadius", 10)
     } // constructor
-
-    changeContent(contentPath) {
-        // let currSize = $(this.id).size
-        if (contentPath) {
-            this.imageSrc = contentPath
-            $(this.innerContentViewId).image = $imagekit.scaleAspectFill($image(this.imageSrc), REAL_IMAGE_SIZE)
-        } // if
-    } // changeContent
 
     reset() {
         $ui.animate({
@@ -67,7 +40,7 @@ class ContentView {
     } // reset
 } // class ContentView
 
-class QuestionView extends ContentView {
+class QuestionView extends MovableContentView {
     constructor(id) {
         super(id)
 
@@ -75,8 +48,6 @@ class QuestionView extends ContentView {
             this.layoutForSize(make, view)
 
             make.centerX.equalTo(view.super)
-            // make.centerY.equalTo(view.super).offset(-300)
-            // make.top.equalTo(view.super.top).offset(15)
             make.bottom.equalTo(view.super.centerY).offset(-10)
         }
     } // constructor
@@ -92,7 +63,7 @@ class QuestionView extends ContentView {
     } // moveUp
 } // class QuestionView
 
-class AnswerView extends ContentView {
+class AnswerView extends MovableContentView {
     constructor(id) {
         super(id)
         this.answerBlurId = "blur_of_" + id
@@ -101,12 +72,10 @@ class AnswerView extends ContentView {
             this.layoutForSize(make, view)
 
             make.centerX.equalTo(view.super)
-            //make.centerY.equalTo(view.super).offset(150)
-            //make.bottom.equalTo(view.super.bottom).offset(-15)
             make.top.equalTo(view.super.centerY).offset(10)
         }
 
-        this.answerBlur = {
+        let answerBlur = {
             type: "blur",
             props: {
                 id: this.answerBlurId,
@@ -116,7 +85,7 @@ class AnswerView extends ContentView {
             layout: $layout.fill
         }
 
-        this.toRender.views.push(this.answerBlur)
+        this.toRender.views.push(answerBlur)
     } // constructor
 
     moveDown() {
@@ -130,7 +99,7 @@ class AnswerView extends ContentView {
         })
     } // moveDown
 
-    resetAndChangeContent(contentPath) {
+    resetAndChangeContent(contentType, content) {
         this.reset()
         $ui.animate({
             duration: 0.2,
@@ -138,7 +107,7 @@ class AnswerView extends ContentView {
                 $(this.answerBlurId).alpha = 1
             },
             completion: () => {
-                this.changeContent(contentPath)
+                this.changeContent(contentType, content)
             }
         })
     }
@@ -154,7 +123,7 @@ class MemoryView {
         this.answerView = new AnswerView(this.aViewId)
         this.buttonAreaId = "button_area" + id
 
-        this.questionView.toRender.events.touchesBegan = (sender, location) => {
+        this.questionView.setEvents("touchesBegan", (sender, location) => {
             if (!this.revealed)
                 sender.info = {
                     whereTouchBegan: location.y,
@@ -162,8 +131,8 @@ class MemoryView {
                     initialAPos: $(this.aViewId).frame.y,
                     needTaptic: true
                 }
-        } // touchesBegan
-        this.questionView.toRender.events.touchesMoved = (sender, location) => {
+        }) // touchesBegan
+        this.questionView.setEvents("touchesMoved", (sender, location) => {
             if (!this.revealed) {
                 // change position
                 let targetQ = $(this.qViewId)
@@ -193,8 +162,8 @@ class MemoryView {
                     targetA.size.height
                 )
             } // if revealed
-        } // touchesMoved
-        this.questionView.toRender.events.touchesEnded = (sender, location) => {
+        }) // touchesMoved
+        this.questionView.setEvents("touchesEnded", (sender, location) => {
             if (!this.revealed) {
                 if (
                     sender.info.whereTouchBegan - location.y >
@@ -228,7 +197,7 @@ class MemoryView {
                     }) // $ui.animate
                 } // if - else
             } // if revealed
-        } // touchesEnded
+        }) // touchesEnded
 
 
         let buttonArea = {
@@ -309,21 +278,18 @@ class MemoryView {
         $(this.buttonAreaId).alpha = 0.5
     }
 
-    resetAndChangeQuestion(contentPathes) {
+    resetAndChangeQuestion(qstAndAsw) {
+        if(!qstAndAsw) return
+        
         this.disableButtonArea()
         this.revealed = false
 
+        let {contentType, contents} = qstAndAsw
         this.questionView.reset()
-        this.questionView.changeContent(contentPathes[0])
-
-        this.answerView.resetAndChangeContent(contentPathes[1])
+        this.questionView.changeContent(contentType, contents[0])
+        this.answerView.resetAndChangeContent(contentType, contents[1])
     }
 
-    //    resetQuestion() {
-    //        this.questionView.reset()
-    //        this.answerView.reset()
-    //    }
-    //
     revealAnswer() {
         this.enableButtonArea()
         this.revealed = true

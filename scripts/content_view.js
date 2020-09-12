@@ -109,11 +109,11 @@ class ContentView {
             ) {
                 this.content = null
 
-                $(this.imageViewId).hidden = false
-                $(this.markdownViewId).hidden = true
-                $(this.imageViewId).contentMode = 1
-                $(this.imageViewId).image = $image("doc.richtext")
-                //                $(this.markdownViewId).content = `# <center>无内容</center>`
+//                $(this.imageViewId).hidden = false
+//                $(this.markdownViewId).hidden = true
+//                $(this.imageViewId).contentMode = 1
+//                $(this.imageViewId).image = $image("doc.richtext")
+                  $(this.markdownViewId).content = `# <center>无内容</center>`
             } else return false
         } else {
             console.log("Error: this method must be called after render.")
@@ -166,7 +166,8 @@ class ContentView {
 
     quickLook() {
         if (this.content && this.contentType == ContentType.image) {
-            $quicklook.open({ image: this.content })
+            console.log("quicklook of image")
+            $quicklook.open({ type: "jpg", data: this.content.jpg(1) })
         } else if (this.content && this.contentType == ContentType.markdown) {
             $ui.push({
                 views: [

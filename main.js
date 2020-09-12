@@ -16,23 +16,34 @@ let MemoryView = require("./scripts/memory_view.js")
 let MemoryListView = require("./scripts/memory_list_view.js")
 let AddMemoryView = require("./scripts/add_memory_view.js")
 
-function getResourceDirById(id) {
+function getDaysAgo(lts0) {
+  let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime()
+  let ts1 = new Date(new Date().toLocaleDateString()).getTime()
+  return parseInt((ts1 - ts0) / (1000 * 24 * 60 * 60))
+}
+
+function getContentDirById(id) {
     return MEMORY_RESOURCE_PATH + "/" + id
 }
 
-function getResourcePathById(id) {
-    let rDir = getResourceDirById(id)
+function getContentPathById(id) {
+    let cDir = getContentDirById(id)
     return [
-        rDir + "/q.jpg",
-        rDir + "/a.jpg"
+        cDir + "/q.jpg",
+        cDir + "/a.jpg"
     ]
+}
+
+function getContentById(id) {
+  let cPathes = getContentPathById(id)
+  return cPathes.map(path => { return $image(path) })
 }
 
 function saveImageMemory(id, images) {
     let savePath = MEMORY_RESOURCE_PATH + "/" + id
     $file.mkdir(savePath)
 
-    let pathes = getResourcePathById(id)
+    let pathes = getContentPathById(id)
     for (let i = 0; i < 2; ++i) {
         $file.write({
             path: pathes[i],
@@ -48,7 +59,11 @@ function getRememberOrForgetCallback(memoryModel, rOrF) {
         let currDesc = memoryModel.getCurrentDescription()
         $ui.title = currDesc ? currDesc : $ui.title
         let currId = memoryModel.getCurrentId()
-        return currId ? getResourcePathById(currId) : [null, null]
+        if (typeof currId == "undefined") return undefined
+        else return {
+          contentType: memoryModel.getCurrentContentType(),
+          contents: getContentById(currId)
+        }
     }
 }
 
@@ -73,7 +88,11 @@ let mvCallBack = {
     forget: getRememberOrForgetCallback(memoryModel, "f"),
     ready: () => {
         $ui.title = memoryModel.getCurrentDescription()
-        return getResourcePathById(memoryModel.getCurrentId())
+        
+        return {
+          contentType: memoryModel.getCurrentContentType(),
+          contents: getContentById(memoryModel.getCurrentId())
+        }
     }
 }
 let memoryView = new MemoryView("memory_view", mvCallBack)
@@ -82,14 +101,14 @@ let mlvCallBack = {
     deleteById: id => {
         memoryDB.deleteById(id)
         // delete resource
-        let rDir = getResourceDirById(id)
-        $file.delete(rDir);
+        let cDir = getContentDirById(id)
+        $file.delete(cDir);
     },
     changeDescriptionById: (id, newDesc) => {
         memoryDB.updateDescriptionById(id, newDesc)
     },
     changeContentById: (id, updateListData) => {
-        let pathes = getResourcePathById(id)
+        let pathes = getContentPathById(id)
         let mem = memoryDB.getMemoryById(id)
         let currContent = {
             description: mem.description,
@@ -112,8 +131,8 @@ let mlvCallBack = {
         memory = memory.concat(memoryDB.getMemory(pageNo, pageSize))
 
         return memory.map(m => {
-            let pathes = getResourcePathById(m.id)
-            let lastDay = m.lastTime == 0 ? undefined : parseInt((new Date() / 1000 - m.lastTime) / 604800)
+            let pathes = getContentPathById(m.id)
+            let lastDay = m.lastTime == 0 ? undefined : getDaysAgo(m.lastTime)
 
             let detail = ""
             if (m.lastTime == 0) detail += "新添加"
