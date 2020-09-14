@@ -49,7 +49,7 @@ class MemoryModel {
                 id: item.id,
                 contentType: item.type,
                 description: item.description,
-                memoryDegree: item.memoryDegree,
+                degree: item.degree,
 
                 isQuestioned: false,
                 consecutiveRememberedTime: 0
@@ -126,8 +126,8 @@ class MemoryModel {
         return this.currLItem ? this.currLItem.data.description : undefined
     }
 
-    getCurrentMemoryDegree() {
-        return this.currLItem ? this.currLItem.data.memoryDegree : undefined
+    getCurrentdegree() {
+        return this.currLItem ? this.currLItem.data.degree : undefined
     }
 } // class
 

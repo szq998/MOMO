@@ -16,13 +16,23 @@ class ContentView {
         this.content = null
         this.contentType
 
+        this.placeholderViewId = "placeholder_of_" + id
         this.imageViewId = "image_of_" + id
         this.markdownViewId = "markdown_of_" + id
 
+        let placeholderView = {
+            type: "image",
+            props: {
+                id: this.placeholderViewId,
+                contentMode: $contentMode.scaleAspectFit
+            },
+            layout: $layout.fill
+        }
         let imageView = {
             type: "image",
             props: {
                 id: this.imageViewId,
+                contentMode: $contentMode.scaleAspectFill,
                 hidden: true
             },
             layout: $layout.fill
@@ -32,7 +42,7 @@ class ContentView {
             props: {
                 id: this.markdownViewId,
                 userInteractionEnabled: false,
-                hidden: true
+                hidden: true,
             },
             layout: $layout.fill
         }
@@ -40,7 +50,7 @@ class ContentView {
         this.toRender = {
             type: "view",
             props: this.props,
-            views: [imageView, markdownView],
+            views: [placeholderView, imageView, markdownView],
             events: this.events
         } // toRender
 
@@ -54,8 +64,8 @@ class ContentView {
             if (typeof layout == "function") {
                 this.toRender.layout = layout
                 return true
-            } else console.log("Error: layout is not of function type.")
-        else  console.log("Error: this method must be called before render.")
+            } else console.error("Error: layout is not of function type.")
+        else console.error("Error: this method must be called before render.")
         return false
     }
 
@@ -64,7 +74,7 @@ class ContentView {
             this.events[eName] = eHandler
             return true
         }
-        console.log("Error: this method must be called before render.")
+        console.error("Error: this method must be called before render.")
         return false
     } // setEvents
 
@@ -73,7 +83,7 @@ class ContentView {
             this.props[pName] = pVal
             return true
         }
-        console.log("Error: this method must be called before render.")
+        console.error("Error: this method must be called before render.")
         return false
     }
 
@@ -87,7 +97,7 @@ class ContentView {
             $(this.markdownViewId).hidden = false
             $(this.imageViewId).hidden = true
         } else {
-            console.log("Error: unsupported content type.")
+            console.error("Error: unsupported content type.")
             return false
         }
         return true
@@ -101,22 +111,26 @@ class ContentView {
             ) {
                 this.content = null
 
-                $(this.imageViewId).contentMode = 1
-                $(this.imageViewId).image = $image("photo")
+                $(this.imageViewId).hidden = true
+                $(this.placeholderViewId).hidden = false
+                $(this.placeholderViewId).image = $image("photo")
             } else if (
                 this.changeType(contentType) &&
                 this.contentType == ContentType.markdown
             ) {
                 this.content = null
 
-//                $(this.imageViewId).hidden = false
-//                $(this.markdownViewId).hidden = true
-//                $(this.imageViewId).contentMode = 1
-//                $(this.imageViewId).image = $image("doc.richtext")
-                  $(this.markdownViewId).content = `# <center>无内容</center>`
+                $(this.markdownViewId).hidden = true
+                $(this.placeholderViewId).hidden = false
+                $(this.placeholderViewId).image = $image("doc.richtext")
+                //                $(this.imageViewId).hidden = false
+                //                $(this.markdownViewId).hidden = true
+                //                $(this.imageViewId).contentMode = 1
+                //                $(this.imageViewId).image = $image("doc.richtext")
+                //                  $(this.markdownViewId).content = `# <center>无内容</center>`
             } else return false
         } else {
-            console.log("Error: this method must be called after render.")
+            console.error("Error: this method must be called after render.")
             return false
         }
         return true
@@ -129,10 +143,9 @@ class ContentView {
                 this.contentType == ContentType.image
             ) {
                 if (typeof content != "object") {
-                    console.log("Error: content is not of image type.")
+                    console.error("Error: content should be image.")
                     return false
                 }
-
                 this.content = content
 
                 let currSize = $(this.id).size
@@ -142,23 +155,23 @@ class ContentView {
                     currSize.height * scale
                 )
                 let resizedImage = $imagekit.scaleAspectFill(content, realSize)
-
-                $(this.imageViewId).contentMode = 2
+                $(this.placeholderViewId).hidden = true
                 $(this.imageViewId).image = resizedImage
             } else if (
                 this.changeType(contentType) &&
                 this.contentType == ContentType.markdown
             ) {
                 if (typeof content != "string") {
-                    console.log("Error: content is not of markdown.")
+                    console.error("Error: content should be markdown.")
                     return false
                 }
 
                 this.content = content
+                $(this.placeholderViewId).hidden = true
                 $(this.markdownViewId).content = content
             } else return false
         } else {
-            console.log("Error: this method must be called after render.")
+            console.error("Error: this method must be called after render.")
             return false
         }
         return true
@@ -166,19 +179,21 @@ class ContentView {
 
     quickLook() {
         if (this.content && this.contentType == ContentType.image) {
-            console.log("quicklook of image")
             $quicklook.open({ type: "jpg", data: this.content.jpg(1) })
         } else if (this.content && this.contentType == ContentType.markdown) {
-            $ui.push({
-                views: [
-                    {
-                        type: "markdown",
-                        props: { content: this.content },
-                        layout: $layout.fill
-                    }
-                ]
-            })
-        }
+            let html = $text.markdownToHtml(this.content)
+            $quicklook.open({ html: html })
+            //            $ui.push({
+            //                views: [
+            //                    {
+            //                        type: "markdown",
+            //                        props: { content: this.content },
+            //                        layout: $layout.fill
+            //                    }
+            //                ]
+            //            })
+        } else return false
+        return true
     } // quickLook
 } // class ContentView
 

@@ -1,33 +1,32 @@
 let ContentView = require("./content_view.js")
 
-const ContentType = {
-  image: 0,
-  markdown: 1
-}
-
 const IMAGE_WIDTH = 400
 const IMAGE_HEIGHT_WIDTH_RATIO = 2 / 3
 const IMAGE_SIZE = $size(IMAGE_WIDTH, IMAGE_WIDTH / IMAGE_HEIGHT_WIDTH_RATIO)
-const REAL_IMAGE_SIZE = $size(IMAGE_SIZE.width * $device.info.screen.scale, IMAGE_SIZE.height * $device.info.screen.scale)
+//const REAL_IMAGE_SIZE = $size(IMAGE_SIZE.width * $device.info.screen.scale, IMAGE_SIZE.height * $device.info.screen.scale)
 
 const CLOSE_THRESHOLD = 80
 
 class MovableContentView extends ContentView {
     constructor(id) {
         super(id)
-        
+
         this.layoutForSize = (make, view) => {
             make.width.equalTo(IMAGE_WIDTH)
             make.width.lessThanOrEqualTo(view.super.width).offset(-30)
-            make.height.equalTo(view.width).multipliedBy(IMAGE_HEIGHT_WIDTH_RATIO)
+            make.height
+                .equalTo(view.width)
+                .multipliedBy(IMAGE_HEIGHT_WIDTH_RATIO)
         }
 
         this.initialLayout = (make, view) => {
             this.layoutForSize(make, view)
             make.center.equalTo(view.super)
         }
-        
+
         this.setProps("cornerRadius", 10)
+        this.setProps("borderWidth", 1)
+        this.setProps("borderColor", $color("lightGray", "darkGray"))
     } // constructor
 
     reset() {
@@ -79,7 +78,7 @@ class AnswerView extends MovableContentView {
             type: "blur",
             props: {
                 id: this.answerBlurId,
-                style: 2,
+                style: $blurStyle.ultraThinMaterial,
                 alpha: 0
             },
             layout: $layout.fill
@@ -199,7 +198,6 @@ class MemoryView {
             } // if revealed
         }) // touchesEnded
 
-
         let buttonArea = {
             type: "stack",
             props: {
@@ -248,7 +246,7 @@ class MemoryView {
             events: {
                 ready: sender => {
                     $(this.buttonAreaId).moveToFront()
-                    this.resetAndChangeQuestion(callBack.ready())
+                    this.resetAndNext(callBack.ready())
                 }
             }
         } // toRender
@@ -262,7 +260,7 @@ class MemoryView {
             },
             events: {
                 tapped: () => {
-                    this.resetAndChangeQuestion(callBack())
+                    this.resetAndNext(callBack())
                 } // tapped
             } // events
         } // returned view
@@ -278,16 +276,16 @@ class MemoryView {
         $(this.buttonAreaId).alpha = 0.5
     }
 
-    resetAndChangeQuestion(qstAndAsw) {
-        if(!qstAndAsw) return
-        
+    resetAndNext(content) {
+        if (!content) return
+
         this.disableButtonArea()
         this.revealed = false
 
-        let {contentType, contents} = qstAndAsw
+        let { type, question, answer } = content
         this.questionView.reset()
-        this.questionView.changeContent(contentType, contents[0])
-        this.answerView.resetAndChangeContent(contentType, contents[1])
+        this.questionView.changeContent(type, question)
+        this.answerView.resetAndChangeContent(type, answer)
     }
 
     revealAnswer() {

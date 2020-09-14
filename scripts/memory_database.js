@@ -11,10 +11,11 @@ class MemoryDatabase {
             "CREATE TABLE Memory( \
             id integer primary key,\
             type integer,\
+            category integer,\
             description text,\
-            lastTime integer,\
-            isRememberedLastTime integer,\
-            memoryDegree integer￼)"
+            time integer,\
+            remembered integer,\
+            degree integer￼)"
         )
         db.close()
 
@@ -31,7 +32,7 @@ class MemoryDatabase {
         this.db.query(
             {
                 sql:
-                    "SELECT * FROM Memory WHERE lastTime=?",
+                    "SELECT * FROM Memory WHERE time=?",
                 args: [NEWLY_ADDED_TIME]
             },
             rs => {
@@ -49,15 +50,15 @@ class MemoryDatabase {
             ? {
                 sql:
                     "SELECT * FROM Memory \
-                       ORDER BY isRememberedLastTime ASC, memoryDegree ASC, lastTime ASC \
+                       ORDER BY remembered ASC, degree ASC, time ASC \
                        LIMIT ? OFFSET ?",
                 args: [pageSize, pageNo * pageSize]
             }
             : {
                 sql:
                     "SELECT * FROM Memory \
-                       WHERE lastTime!=? \
-                       ORDER BY isRememberedLastTime ASC, memoryDegree ASC, lastTime ASC \
+                       WHERE time!=? \
+                       ORDER BY remembered ASC, degree ASC, time ASC \
                        LIMIT ? OFFSET ?",
                 args: [NEWLY_ADDED_TIME, pageSize, pageNo * pageSize]
             }
@@ -87,8 +88,8 @@ class MemoryDatabase {
         this.db.query(
             {
                 sql:
-                    "SELECT id, type, description, memoryDegree FROM Memory \
-                    WHERE lastTime=? \
+                    "SELECT id, type, description, degree FROM Memory \
+                    WHERE time=? \
                     LIMIT ?",
                 args: [NEWLY_ADDED_TIME, num]
             },
@@ -104,9 +105,9 @@ class MemoryDatabase {
         this.db.query(
             {
                 sql:
-                    "SELECT id, type, description, memoryDegree FROM Memory \
-                    WHERE lastTime!=? \
-                    ORDER BY isRememberedLastTime ASC, memoryDegree ASC, lastTime ASC \
+                    "SELECT id, type, description, degree FROM Memory \
+                    WHERE time!=? \
+                    ORDER BY remembered ASC, degree ASC, time ASC \
                     LIMIT ?",
                 args: [NEWLY_ADDED_TIME, num_remain]
             },
@@ -127,9 +128,9 @@ class MemoryDatabase {
         this.db.update({
             sql:
                 "UPDATE Memory \
-                 SET isRememberedLastTime=1, \
-                 lastTime=strftime('%s', 'now'), \
-                 memoryDegree=? \
+                 SET remembered=1, \
+                 time=strftime('%s', 'now'), \
+                 degree=? \
                  WHERE id=?",
             args: [degree, id]
         })
@@ -143,9 +144,9 @@ class MemoryDatabase {
         this.db.update({
             sql:
                 "UPDATE Memory \
-                 SET isRememberedLastTime=0, \
-                 lastTime=strftime('%s', 'now'), \
-                 memoryDegree=? \
+                 SET remembered=0, \
+                 time=strftime('%s', 'now'), \
+                 degree=? \
                  WHERE id=?",
             args: [degree, id]
         })
@@ -190,21 +191,21 @@ class MemoryDatabase {
         } else return lastId + 1
     } // getNextId
 
-    addMemory(type, description) {
+    addMemory(type, description, category=0) {
         let new_id = this.getNextId()
         this.db.update({
-            sql: "INSERT INTO Memory values(?, ?, ?, ?, ?, ?)",
-            args: [new_id, type, description, NEWLY_ADDED_TIME, 0, 0]
+            sql: "INSERT INTO Memory values(?, ?, ?, ?, ?, ?, ?)",
+            args: [new_id, type, category, description, NEWLY_ADDED_TIME, 0, 0]
         })
         return new_id
     } // addMemory
 
     getDegree(id) {
         let rs = this.db.query({
-            sql: "SELECT memoryDegree FROM Memory WHERE id=?",
+            sql: "SELECT degree FROM Memory WHERE id=?",
             args: [id]
         }).result
-        if (rs.next()) return rs.values.memoryDegree
+        if (rs.next()) return rs.values.degree
         else return 0
     } // getDegree
 
@@ -214,7 +215,14 @@ class MemoryDatabase {
             args: [id]
         })
     } // deleteById
-
+    
+    updateContentTypeById(id, newType) {
+      this.db.update({
+             sql: "UPDATE Memory SET type=? WHERE id=?",
+             args: [newType, id]
+        })
+    }
+    
     updateDescriptionById(id, newDesc) {
         this.db.update({
             sql: "UPDATE Memory SET description=? WHERE id=?",
