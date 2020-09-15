@@ -7,13 +7,8 @@ const ContentType = {
 }
 
 const MIN_DESC_LEN = 5
-const IMAGE_WIDTH = 150
-const IMAGE_HEIGHT_WIDTH_RATIO = 2 / 3
-const IMAGE_SIZE = $size(IMAGE_WIDTH, IMAGE_WIDTH / IMAGE_HEIGHT_WIDTH_RATIO)
-const REAL_IMAGE_SIZE = $size(
-    IMAGE_SIZE.width * $device.info.screen.scale,
-    IMAGE_SIZE.height * $device.info.screen.scale
-)
+const CONTENT_WIDTH = 200
+const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
 class ContentSettingView extends ContentView {
     constructor(id) {
@@ -232,7 +227,7 @@ class MemorySettingView extends PopView {
             layout: (make, view) => {
                 make.centerX.equalTo(view.super)
                 make.centerY.equalTo(view.super).offset(-180)
-                make.size.equalTo($size(150, 60))
+                make.size.equalTo($size(CONTENT_WIDTH, 60))
             }
         }
 
@@ -252,10 +247,10 @@ class MemorySettingView extends PopView {
             make.centerX.equalTo(view.super)
             make.top.equalTo($(this.idsOfMSV.descInput).bottom).offset(40)
 
-            make.width.equalTo(IMAGE_WIDTH)
+            make.width.equalTo(CONTENT_WIDTH)
             make.height
                 .equalTo(view.width)
-                .multipliedBy(IMAGE_HEIGHT_WIDTH_RATIO)
+                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO)
         })
 
         this.answerSetter = new ContentSettingView(this.idsOfMSV.answerSetter)
@@ -263,10 +258,10 @@ class MemorySettingView extends PopView {
             make.centerX.equalTo(view.super)
             make.top.equalTo($(this.idsOfMSV.questionSetter).bottom).offset(40)
 
-            make.width.equalTo(IMAGE_WIDTH)
+            make.width.equalTo(CONTENT_WIDTH)
             make.height
                 .equalTo(view.width)
-                .multipliedBy(IMAGE_HEIGHT_WIDTH_RATIO)
+                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO)
         })
 
         let questionSettingLabel = this.makeLabelView(

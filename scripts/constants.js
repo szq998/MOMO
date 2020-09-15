@@ -1,2 +1,0 @@
-const MIN_DESC_LEN = 5
-const IMAGE_HEIGHT_WIDTH_RATIO = 2 / 3
