@@ -38,13 +38,9 @@ class MemoryModel {
         this.currLItem
     } // constructor
 
-    start(num) {
-        let memorySnapshots = this.memoryDB.getMostForgetableMemorySnapshots(
-            num
-        )
-
-        let memoryItems = new Array(memorySnapshots.length)
-        memorySnapshots.forEach((item, index) => {
+    start(mSnapshots) {
+        let memoryItems = new Array(mSnapshots.length)
+        mSnapshots.forEach((item, index) => {
             memoryItems[index] = {
                 id: item.id,
                 contentType: item.type,
@@ -60,7 +56,6 @@ class MemoryModel {
         this.currLItem = this.memoryList.list[0]
 
         console.log("get " + memoryItems.length + " memory snapshot(s)")
-        return memoryItems.length
     }
 
     remeber() {

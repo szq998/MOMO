@@ -123,11 +123,6 @@ class ContentView {
                 $(this.markdownViewId).hidden = true
                 $(this.placeholderViewId).hidden = false
                 $(this.placeholderViewId).image = $image("doc.richtext")
-                //                $(this.imageViewId).hidden = false
-                //                $(this.markdownViewId).hidden = true
-                //                $(this.imageViewId).contentMode = 1
-                //                $(this.imageViewId).image = $image("doc.richtext")
-                //                  $(this.markdownViewId).content = `# <center>无内容</center>`
             } else return false
         } else {
             console.error("Error: this method must be called after render.")

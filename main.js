@@ -147,6 +147,9 @@ let mvCallBack = {
 let memoryView = new MemoryView("memory_view", mvCallBack)
 
 let mlvCallBack = {
+    getAllCategories: () => {
+        return memoryDB.getAllCategories()
+    },
     deleteById: id => {
         memoryDB.deleteById(id)
         // delete resource
@@ -159,34 +162,38 @@ let mlvCallBack = {
     changeContentById: (id, updateListDataWithContentInfo) => {
         let mem = memoryDB.getMemoryById(id)
         let { question, answer } = getContent(id, mem.type)
-        let currContent = {
+        let oldContent = {
             type: mem.type,
             desc: mem.description,
             question: question,
-            answer: answer
+            answer: answer,
+            category: mem.category
         }
 
         let doAfterModified = () => {
             let newMem = memoryDB.getMemoryById(id)
-            let { qPath, aPath, sPath } = getContentPath(id, mem.type)
+            let { qPath, aPath, sPath } = getContentPath(id, newMem.type)
             let newInfo = {
                 type: newMem.type,
                 desc: newMem.description,
                 qPath: qPath,
                 aPath: aPath,
-                sPath: sPath
+                sPath: sPath,
+                category: newMem.category
             }
             updateListDataWithContentInfo(newInfo)
         }
 
-        memorySettingView.editMemory(id, currContent, doAfterModified)
+        memorySettingView.editMemory(id, oldContent, doAfterModified)
     },
-    getMemoryByPage: (pageNo, pageSize) => {
+    getMemoryByPage: (pageNo, pageSize, category) => {
         let memory = []
         if (pageNo == 0) {
-            memory = memory.concat(memoryDB.getNewlyAddedMemory())
+            memory = memory.concat(memoryDB.getNewlyAddedMemory(category))
         }
-        memory = memory.concat(memoryDB.getMemory(pageNo, pageSize))
+        memory = memory.concat(
+            memoryDB.getMemory(pageNo, pageSize, category, false)
+        )
 
         return memory.map(m => {
             let { qPath, aPath, sPath } = getContentPath(m.id, m.type)
@@ -202,9 +209,10 @@ let mlvCallBack = {
             let contentInfo = {
                 type: m.type,
                 desc: m.description,
+                category: m.category,
                 qPath: qPath,
                 aPath: aPath,
-                sPath
+                sPath: sPath
             }
             return {
                 id: m.id,
@@ -219,22 +227,29 @@ let memoryListView = new MemoryListView(
     "memory_list_view",
     mlvCallBack,
     (make, view) => {
-        make.left.top.right.equalTo(view.super)
+        make.left.top.right.equalTo(0)
         make.bottom.equalTo(view.prev.top).offset(-15)
     }
 )
 
 let msvCallBack = {
+    addCategory: text => {
+      if (text == "全部") return false
+      else return memoryDB.addCategory(text)
+    },
+    getAllCategories: () => {
+      return memoryDB.getAllCategories(false)
+    },
     add: content => {
-        let id = memoryDB.getNextId()
-        saveContent(id, content)
-        memoryDB.addMemory(content.type, content.desc)
-        memoryListView.refresh()
+        let newId = memoryDB.addMemory(content.type, content.desc, content.category)
+        saveContent(newId, content)
+        memoryListView.refresh(content.category)
     },
     modify: (id, content) => {
         memoryDB.updateDescriptionById(id, content.desc)
         memoryDB.updateContentTypeById(id, content.type)
-
+        memoryDB.updateCategoryById(id, content.category)
+        
         saveContent(id, content)
     }
 }
@@ -258,7 +273,11 @@ function startMemory() {
                     $cache.set("using", {
                         lastNum: num
                     })
-                    if (memoryModel.start(num) > 0)
+                    let mSnapshots = memoryDB.getMostForgetableMemorySnapshots(
+                        num
+                    )
+                    memoryModel.start(mSnapshots)
+                    if (mSnapshots.length > 0)
                         $ui.push({
                             props: {
                                 title: ""
@@ -319,7 +338,8 @@ let buttonArea = {
 $ui.render({
     props: {
         title: "默默记点啥",
-        bgcolor: $color("#F2F1F6", "primarySurface")
+        bgcolor: $color("#F2F1F6", "primarySurface"),
+        titleView: memorySettingView.getNavBarView()
     },
     views: [buttonArea, memoryListView.toRender, memorySettingView.toRender]
 })

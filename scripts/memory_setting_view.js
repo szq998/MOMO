@@ -7,7 +7,8 @@ const ContentType = {
 }
 
 const MIN_DESC_LEN = 5
-const CONTENT_WIDTH = 200
+const MAX_CATEGORY_LEN = 10
+const CONTENT_WIDTH = 220
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
 class ContentSettingView extends ContentView {
@@ -191,26 +192,10 @@ class MemorySettingView extends PopView {
             questionSettingLabel: "question_setting_label_of_" + id,
             answerSetter: "answer_setter_of_" + id,
             answerSettingLabel: "answer_setting_label_of_" + id,
-            finishButton: "finish_button_of_" + id
-        }
-
-        let contentTypeSwitch = {
-            type: "tab",
-            props: {
-                id: this.idsOfMSV.contentTypeSwitch,
-                dynamicWidth: true,
-                items: ["image", "markdown"]
-            },
-            layout: (make, view) => {
-                make.centerX.equalTo(view.super)
-                make.bottom.equalTo($(this.idsOfMSV.descInput).top).offset(-40)
-            },
-            events: {
-                changed: sender => {
-                    this.questionSetter.showNoContent(this.getContentType())
-                    this.answerSetter.showNoContent(this.getContentType())
-                }
-            }
+            finishButton: "finish_button_of_" + id,
+            navBarView: "nav_bar_view_of_" + id,
+            categoryPicker: "category_picker_of_" + id,
+            categoryPickingLabel: "category_picking_label" + id
         }
 
         let descInput = {
@@ -226,8 +211,8 @@ class MemorySettingView extends PopView {
             }, // props
             layout: (make, view) => {
                 make.centerX.equalTo(view.super)
-                make.centerY.equalTo(view.super).offset(-180)
-                make.size.equalTo($size(CONTENT_WIDTH, 60))
+                make.centerY.equalTo(view.super).offset(-250)
+                make.size.equalTo($size(CONTENT_WIDTH, 45))
             }
         }
 
@@ -282,35 +267,42 @@ class MemorySettingView extends PopView {
             }
         )
 
-        let finishButton = {
-            type: "button",
-            props: {
-                id: this.idsOfMSV.finishButton,
-                title: "完成"
-            },
-            layout: (make, view) => {
-                make.centerX.equalTo(view.super)
-                make.top
-                    .equalTo($(this.idsOfMSV.answerSetter).bottom)
-                    .offset(30)
-                make.size.equalTo($size(120, 40))
-            },
-            events: {
-                tapped: sender => {
-                    this.finishHandler()
-                }
-            } // events
-        } // finishButton
-
+        let categoryPicker = {
+          type: "picker",
+          props: {
+            id: this.idsOfMSV.categoryPicker,
+            items: [["新增类别"]],
+            borderWidth: 1,
+            borderColor: $color("gray"),
+            cornerRadius: 10
+          },
+          layout: (make, view) => {
+            make.centerX.equalTo(view.super)
+            make.top.equalTo($(this.idsOfMSV.answerSetter).bottom).offset(40)
+            make.size.equalTo($size(CONTENT_WIDTH, 100))
+          }
+        }   
+        
+        let categoryPickingLabel = this.makeLabelView(
+                    this.idsOfMSV.categoryPickingLabel,
+                    "类别",
+                    (make, view) => {
+                        make.leading.equalTo($(this.idsOfMSV.categoryPicker).leading)
+                        make.bottom.equalTo($(this.idsOfMSV.categoryPicker).top).offset(-3)
+                    }
+                )
+        
         let viewsOfMemorySettingView = [
             descInput,
-            contentTypeSwitch,
+            //            contentTypeSwitch,
             descInputLabel,
             this.questionSetter.toRender,
             questionSettingLabel,
             this.answerSetter.toRender,
             answerSettingLabel,
-            finishButton
+            categoryPicker,
+            categoryPickingLabel
+            //            finishButton
         ]
 
         this.addViews(viewsOfMemorySettingView)
@@ -321,8 +313,32 @@ class MemorySettingView extends PopView {
         }
     } // constructor
 
+    appear() {
+        let cpItems = this.callBack.getAllCategories()
+        cpItems.push("新增类别")
+        $(this.idsOfMSV.categoryPicker).items = [cpItems]
+        
+        $(this.idsOfMSV.navBarView).hidden = false
+        $ui.animate({
+            animation: () => {
+                $(this.idsOfMSV.navBarView).alpha = 1
+            }
+        })
+
+        super.appear()
+    }
+
     doBeforeClose() {
         $(this.idsOfMSV.descInput).blur()
+
+        $ui.animate({
+            animation: () => {
+                $(this.idsOfMSV.navBarView).alpha = 0
+            },
+            conpletion: () => {
+                $(this.idsOfMSV.navBarView).hidden = true
+            }
+        })
     }
 
     doAfterClose() {
@@ -398,6 +414,16 @@ class MemorySettingView extends PopView {
         } else console.error("Error: this method must be called after render.")
     }
 
+    setCategory(category) {
+       let sr = $(this.idsOfMSV.categoryPicker).selectedRows
+       let cpItems = $(this.idsOfMSV.categoryPicker).items[0]
+       let index = cpItems.indexOf(category)
+       console.log(cpItems)
+       cpItems.unshift(cpItems.splice(index, 1)[0])
+       console.log(cpItems)
+       $(this.idsOfMSV.categoryPicker).items = [cpItems]
+    }
+    
     generateSnapshot() {
         let type = this.getContentType()
         let snapshot
@@ -409,12 +435,12 @@ class MemorySettingView extends PopView {
         return snapshot
     }
 
-    finishHandler() {
+    async finishHandler() {
         $(this.idsOfMSV.descInput).blur()
 
         let content = {
             type: this.getContentType(),
-            desc: $(this.idsOfMSV.descInput).text,
+            desc: $(this.idsOfMSV.descInput).text.trim(),
             question: this.questionSetter.content,
             answer: this.answerSetter.content
         }
@@ -423,9 +449,32 @@ class MemorySettingView extends PopView {
             content.question &&
             content.answer
         ) {
+            // decide category
+            let index = $(this.idsOfMSV.categoryPicker).selectedRows[0]
+            let cpItems = $(this.idsOfMSV.categoryPicker).items[0]
+            if(index == cpItems.length - 1){
+               // add new category
+               let text = await $input.text({
+                 type: $kbType.default,
+                 placeholder: "输入新类别名",
+               })
+               // no input
+               if(typeof text != "string") return
+               text = text.trim()
+               if(text.length >= MAX_CATEGORY_LEN) {
+                 $ui.warning("类别名过长")
+                 return
+               }
+               if (!this.callBack.addCategory(text)) {
+                 $ui.warning("新增类别失败，可能与已有类别重名")
+                 return
+               }
+               content.category = text
+            } else content.category = cpItems[index]
+            
             // generate snapshot
             content.snapshot = this.generateSnapshot()
-            //            $quicklook.open({image: content.snapshot})
+            
             if (this.isModifying) {
                 this.isModifying = false
 
@@ -461,7 +510,60 @@ class MemorySettingView extends PopView {
         this.doAfterModified = doAfterModified
 
         this.appear()
+        this.setCategory(oldContent.category)
     } // editMemory
+
+    getTypeSwitchTab() {
+        return {
+            type: "tab",
+            props: {
+                id: this.idsOfMSV.contentTypeSwitch,
+                bgcolor: $color("white", "clear"),
+                dynamicWidth: true,
+                items: [$image("photo"), $image("doc.richtext")]
+            },
+            layout: $layout.center,
+            events: {
+                changed: sender => {
+                    this.questionSetter.showNoContent(this.getContentType())
+                    this.answerSetter.showNoContent(this.getContentType())
+                }
+            }
+        }
+    }
+
+    getFinishButton() {
+        return {
+            type: "button",
+            props: {
+                id: this.idsOfMSV.finishButton,
+                title: "完成",
+                bgcolor: $color("clear"),
+            },
+            layout: (make, view) => {
+                make.centerY.equalTo(0)
+                make.right.equalTo(0)
+            },
+            events: {
+                tapped: sender => {
+                    this.finishHandler()
+                }
+            } // events
+        } // finishButton
+    }
+
+    getNavBarView() {
+        return {
+            type: "view",
+            props: {
+                id: this.idsOfMSV.navBarView,
+                hidden: true,
+                alpha: 0
+            },
+            layout: $layout.fill,
+            views: [this.getFinishButton(), this.getTypeSwitchTab()]
+        }
+    }
 } // class
 
 module.exports = MemorySettingView

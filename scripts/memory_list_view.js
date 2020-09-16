@@ -19,11 +19,30 @@ class MemoryListView {
         this.estimatedRowHeight =
             SNAPSHOT_WIDTH / CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET
 
-        this.header_id = "mlv_header_of" + this.id
+        this.categoryMenuId = "category_menu_of_" + this.id
+        this.categoryMenu = {
+            type: "menu",
+            props: {
+                id: this.categoryMenuId,
+                items: ["全部"].concat(callBack.getAllCategories()),
+                dynamicWidth: true
+            },
+            layout: (make, view) => {
+                make.top.left.right.equalTo(0)
+                make.height.equalTo(40)
+            },
+            events: {
+                changed: sender => {
+                    this.categoryChanged()
+                }
+            }
+        }
+
+        this.headerLabelId = "mlv_header_of" + this.id
         let header = {
             type: "label",
             props: {
-                id: this.header_id,
+                id: this.headerLabelId,
                 height: 20,
                 text: "所有记录",
                 textColor: $color("#AAAAAA"),
@@ -32,11 +51,11 @@ class MemoryListView {
             }
         }
 
-        this.footer_id = "mlv_footer_of" + this.id
+        this.footerId = "mlv_footer_of" + this.id
         let footer = {
             type: "label",
             props: {
-                id: this.footer_id,
+                id: this.footerId,
                 height: 20,
                 text: "加载中...",
                 textColor: $color("#AAAAAA"),
@@ -62,6 +81,7 @@ class MemoryListView {
                                     placeholder: "输入新的描述",
                                     text: data.contentInfo.desc,
                                     handler: text => {
+                                        text = text.trim()
                                         if (text.length >= MIN_DESC_LEN) {
                                             callBack.changeDescriptionById(
                                                 data.id,
@@ -82,13 +102,21 @@ class MemoryListView {
                         {
                             title: "更改内容",
                             handler: (sender, indexPath, data) => {
-                                let updateListDataWithContentInfo = contentInfo => {
-                                    data.contentInfo = contentInfo
+                                let updateListDataWithContentInfo = newContentInfo => {
+                                    if (
+                                        data.contentInfo.category ==
+                                        newContentInfo.category
+                                    ) {
+                                        data.contentInfo = newContentInfo
+                                        data.memory_desc.text =
+                                            newContentInfo.desc
+                                        data.snapshot.src = newContentInfo.sPath
 
-                                    data.memory_desc.text = contentInfo.desc
-                                    data.snapshot.src = contentInfo.sPath
-                                    this.data[indexPath.row] = data
-                                    sender.data = this.data
+                                        this.data[indexPath.row] = data
+                                        sender.data = this.data
+                                    } else {
+                                        this.refresh(newContentInfo.category)
+                                    }
                                 }
 
                                 callBack.changeContentById(
@@ -174,10 +202,11 @@ class MemoryListView {
             ]
         } // template
 
-        this.toRender = {
+        this.listId = "list_of_" + this.id
+        this.list = {
             type: "list",
             props: {
-                id: this.id,
+                id: this.listId,
                 style: 2,
                 autoRowHeight: true,
                 estimatedRowHeight: this.estimatedRowHeight,
@@ -210,7 +239,7 @@ class MemoryListView {
             events: {
                 ready: sender => {
                     sender.relayout()
-                    this.nextPage = 0
+
                     let superSize = sender.super.size
                     let biggerSpan =
                         superSize.height > superSize.width
@@ -221,6 +250,7 @@ class MemoryListView {
                         parseInt(biggerSpan / this.estimatedRowHeight) + 1
                     console.log("page size is " + this.pageSize)
 
+                    this.nextPage = 0
                     this.data = this.getNextPageData()
                     sender.data = this.data
                 },
@@ -228,11 +258,11 @@ class MemoryListView {
                     this.refresh()
                 },
                 didReachBottom: sender => {
-                    $(this.footer_id).hidden = false
+                    $(this.footerId).hidden = false
                     let newData = this.getNextPageData()
                     this.data = this.data.concat(newData)
                     $delay(0.5, () => {
-                        $(this.footer_id).hidden = true
+                        $(this.footerId).hidden = true
                         sender.endFetchingMore()
                         sender.data = this.data
                     })
@@ -244,21 +274,21 @@ class MemoryListView {
                     )
                 } // didSelected
             }, // events
-            layout: layout
-        } // toRender
-    } // constructor
+            layout: (make, view) => {
+                make.top.equalTo(view.prev.bottom)
+                make.left.bottom.right.equalTo(0)
+            }
+        }
 
-    refresh() {
-        $(this.id).beginRefreshing()
-        $(this.header_id).text = "刷新中..."
-        this.nextPage = 0
-        this.data = this.getNextPageData()
-        $delay(0.5, () => {
-            $(this.id).endRefreshing()
-            $(this.id).data = this.data
-            $(this.header_id).text = "所有记录"
-        })
-    }
+        this.toRender = {
+            type: "view",
+            props: {
+                id: this.id
+            },
+            views: [this.categoryMenu, this.list],
+            layout: layout
+        }
+    } // constructor
 
     getNextPageData() {
         const DEGREE_COLORS = [
@@ -273,7 +303,8 @@ class MemoryListView {
         ]
         let newMemory = this.callBack.getMemoryByPage(
             this.nextPage++,
-            this.pageSize
+            this.pageSize,
+            this.getCurrentCategory()
         )
         if (!newMemory) this.nextPage--
         let newData = []
@@ -300,6 +331,48 @@ class MemoryListView {
         } // for
         return newData
     } // loadNextPage
+
+    getCurrentCategory() {
+        let index = $(this.categoryMenuId).index
+        if (index > 0) return $(this.categoryMenuId).items[index]
+        else return null
+    }
+
+    switchToCategory(category) {
+        let newCtgy = this.callBack.getAllCategories()
+        newCtgy.unshift("全部")
+
+        let index = newCtgy.indexOf(category)
+        if (index == -1) {
+            console.error("Error: category not found.")
+            return
+        }
+
+        $(this.categoryMenuId).items = newCtgy
+        $delay(0.1, () => {
+            $(this.categoryMenuId).index = index
+        })
+    }
+
+    categoryChanged() {
+        this.nextPage = 0
+        this.data = this.getNextPageData()
+
+        $(this.listId).data = this.data
+    }
+
+    refresh(categoty = null) {
+        $(this.listId).beginRefreshing()
+        $(this.headerLabelId).text = "刷新中..."
+        if (categoty) this.switchToCategory(categoty)
+        $delay(0.5, () => {
+            this.nextPage = 0
+            this.data = this.getNextPageData()
+            $(this.listId).endRefreshing()
+            $(this.listId).data = this.data
+            $(this.headerLabelId).text = "所有记录"
+        })
+    }
 
     quickLook(type, path) {
         if (type == ContentType.image) {
