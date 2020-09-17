@@ -34,15 +34,22 @@ class MemoryDatabase {
 
     addCategory(categoryName) {
         let dup = this.db.query({
-          sql: "SELECT * FROM Category WHERE name=?",
-          args: [categoryName]
+            sql: "SELECT * FROM Category WHERE name=?",
+            args: [categoryName]
         }).result
-        
-        if(dup.next()) return false
-        
+
+        if (dup.next()) return false
+
+        let nextOrd
+        this.db.query("SELECT corder FROM Category ORDER BY corder DESC LIMIT 1", (rs, er) => {
+            if(rs) {
+                if(rs.next()) nextOrd = rs.values.corder + 1
+                else nextOrd = 0
+            }
+        })
         this.db.update({
             sql: "INSERT INTO Category values(?, ?, ?)",
-            args: [null, categoryName, 0]
+            args: [null, categoryName, nextOrd]
         })
         return true
     }
@@ -267,8 +274,19 @@ class MemoryDatabase {
 
     getCount() {
         let rs = this.db.query("SELECT count(*) FROM Memory").result
-        if (rs && rs.next()) return rs.values["count(*)"]
-        else return 0
+        if(rs){
+            if(rs.next()) return rs.values["count(*)"]
+            else return 0
+        }
+    }
+
+    getCountByCategory(ctgy) {
+        let ctgyID = this.getCategoryIdByName(ctgy)
+        let rs = this.db.query({sql: "SELECT count(*) FROM Memory WHERE category=?", args: [ctgyID]}).result
+        if(rs){
+            if(rs.next()) return rs.values["count(*)"]
+            else return 0
+        }
     }
 
     getNextId() {
@@ -337,6 +355,71 @@ class MemoryDatabase {
             args: [id]
         })
     } // deleteById
+
+    deleteCategory(ctgy) {
+        let ctgyID = this.getCategoryIdByName(ctgy)
+        this.db.update({
+            sql: "DELETE FROM Memory WHERE category=?",
+            args: [ctgyID]
+        })
+        this.db.update({
+            sql: "DELETE FROM Category WHERE name=?",
+            args: [ctgy]
+        })
+    }
+
+    renameCategory(ctgy, newName) {
+        let dup = this.db.query({
+            sql: "SELECT * FROM Category WHERE name=?",
+            args: [newName]
+        }).result
+
+        if (dup.next()) return false
+
+        this.db.update({
+            sql: "UPDATE Category SET name=? WHERE name=?",
+            args: [newName, ctgy]
+        })
+        return true
+    }
+
+    mergeCategory(srcCtgy, dstCtgy) {
+        let srcCtgyID = this.getCategoryIdByName(srcCtgy)
+        let dstCtgyID = this.getCategoryIdByName(dstCtgy)
+
+        this.db.update({
+            sql: "UPDATE Memory SET category=? WHERE category=?",
+            args: [dstCtgyID, srcCtgyID]
+        })
+
+        this.deleteCategory(srcCtgy)
+    }
+
+    exchangeCategoryOrder(srcCtgy, dstCtgy) {
+        let sOrd, dOrd
+        this.db.query({
+            sql: "SELECT corder FROM Category WHERE name=?",
+            args: [srcCtgy]
+        }, (rs, er) => {
+            if (rs && rs.next()) sOrd = rs.values.corder
+        })
+        this.db.query({
+            sql: "SELECT corder FROM Category WHERE name=?",
+            args: [dstCtgy]
+        }, (rs, er) => {
+            if (rs && rs.next()) dOrd = rs.values.corder
+        })
+
+        this.db.update({
+            sql: "UPDATE Category SET corder=? WHERE name=?",
+            args: [dOrd, srcCtgy]
+        })
+
+        this.db.update({
+            sql: "UPDATE Category SET corder=? WHERE name=?",
+            args: [sOrd, dstCtgy]
+        })
+    }
 
     updateContentTypeById(id, newType) {
         this.db.update({

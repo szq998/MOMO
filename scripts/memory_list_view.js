@@ -1,4 +1,5 @@
 const MIN_DESC_LEN = 5
+const MAX_CATEGORY_LEN = 10
 
 const SNAPSHOT_WIDTH = 80
 const SNAPSHOT_INSET = 5
@@ -25,7 +26,7 @@ class MemoryListView {
             props: {
                 id: this.categoryMenuId,
                 items: ["全部"].concat(callBack.getAllCategories()),
-                dynamicWidth: true
+                // dynamicWidth: true
             },
             layout: (make, view) => {
                 make.top.left.right.equalTo(0)
@@ -34,9 +35,16 @@ class MemoryListView {
             events: {
                 changed: sender => {
                     this.categoryChanged()
-                }
-            }
-        }
+                },
+                longPressed: info => {
+                    let sender = info.sender
+                    $ui.popover({
+                        sourceView: sender,
+                        views: [this.makeCategoryEditView()]
+                    })
+                } // longPressed
+            } // events
+        } // categoryMenu
 
         this.headerLabelId = "mlv_header_of" + this.id
         let header = {
@@ -71,59 +79,25 @@ class MemoryListView {
                 {
                     title: "编辑",
                     symbol: "pencil.and.ellipsis.rectangle",
-                    inline: false,
+                    inline: true,
                     items: [
                         {
                             title: "更改描述",
                             handler: (sender, indexPath, data) => {
-                                $input.text({
-                                    type: $kbType.default,
-                                    placeholder: "输入新的描述",
-                                    text: data.contentInfo.desc,
-                                    handler: text => {
-                                        text = text.trim()
-                                        if (text.length >= MIN_DESC_LEN) {
-                                            callBack.changeDescriptionById(
-                                                data.id,
-                                                text
-                                            )
-                                            // change data in list
-                                            data.contentInfo.desc = text
-                                            data.memory_desc.text = text
-                                            this.data[indexPath.row] = data
-                                            sender.data = this.data
-                                        } else {
-                                            $ui.warning("描述过短")
-                                        }
-                                    }
-                                })
+                                this.changeDescription(sender, indexPath, data)
                             }
+                        },
+                        {
+                            title: "更改类别",
+                            handler: (sender, indexPath, data) => {
+                                this.changeCategory(sender, indexPath, data)
+                            } // handler
                         },
                         {
                             title: "更改内容",
                             handler: (sender, indexPath, data) => {
-                                let updateListDataWithContentInfo = newContentInfo => {
-                                    if (
-                                        data.contentInfo.category ==
-                                        newContentInfo.category
-                                    ) {
-                                        data.contentInfo = newContentInfo
-                                        data.memory_desc.text =
-                                            newContentInfo.desc
-                                        data.snapshot.src = newContentInfo.sPath
-
-                                        this.data[indexPath.row] = data
-                                        sender.data = this.data
-                                    } else {
-                                        this.refresh(newContentInfo.category)
-                                    }
-                                }
-
-                                callBack.changeContentById(
-                                    data.id,
-                                    updateListDataWithContentInfo
-                                )
-                            }
+                                this.changeContent(sender, indexPath, data)
+                            } // handler
                         }
                     ]
                 },
@@ -338,20 +312,20 @@ class MemoryListView {
         else return null
     }
 
-    switchToCategory(category) {
+    switchToCategory(category = null) {
         let newCtgy = this.callBack.getAllCategories()
         newCtgy.unshift("全部")
 
-        let index = newCtgy.indexOf(category)
+        let index = category ? newCtgy.indexOf(category) : 0
         if (index == -1) {
             console.error("Error: category not found.")
             return
         }
 
         $(this.categoryMenuId).items = newCtgy
-        $delay(0.1, () => {
-            $(this.categoryMenuId).index = index
-        })
+        $(this.categoryMenuId).index = index
+        this.categoryChanged()
+        
     }
 
     categoryChanged() {
@@ -361,10 +335,10 @@ class MemoryListView {
         $(this.listId).data = this.data
     }
 
-    refresh(categoty = null) {
+    refresh() {
         $(this.listId).beginRefreshing()
         $(this.headerLabelId).text = "刷新中..."
-        if (categoty) this.switchToCategory(categoty)
+        //        this.switchToCategory(categoty)
         $delay(0.5, () => {
             this.nextPage = 0
             this.data = this.getNextPageData()
@@ -385,6 +359,304 @@ class MemoryListView {
             $quicklook.open({ html: html })
         } else console.error("Error: unsupported content type.")
     } // quicklook
+
+    makeCategoryEditView() {
+        let reorderSrcIdx
+        let reorderDstIdx
+
+        let allCtgy = this.callBack.getAllCategories()
+        if (allCtgy.length) {
+            let template = {
+                props: {
+                    bgcolor: $color("clear")
+                },
+                views: [
+                    {
+                        type: "label",
+                        props: {
+                            id: "label"
+                        },
+                        layout: (make, view) => {
+                            make.leading.equalTo(15)
+                            make.centerY.equalTo(0)
+                        }
+                    }
+                ]
+            } // template
+
+            let actions = [
+                {
+                    title: "删除",
+                    color: $color("red"), // default to gray
+                    handler: (sender, indexPath) => {
+                        this.deleteCategory(sender, indexPath)
+                    }
+                },
+                {
+                    title: "重命名",
+                    handler: (sender, indexPath) => {
+                        this.renameCategoty(sender, indexPath)
+                    }
+                },
+                {
+                    title: "合并到...",
+                    handler: (sender, indexPath) => {
+                        this.mergeCategory(sender, indexPath)
+                    }
+                }
+            ]
+
+            return {
+                type: "list",
+                props: {
+                    bgcolor: $color("tertiarySurface"),
+                    separatorColor: $color("separatorColor", "darkGray"),
+                    reorder: true,
+                    data: allCtgy.map(ctg => {
+                        return { label: { text: ctg } }
+                    }),
+                    template: template,
+                    actions: actions
+                },
+                layout: $layout.fill,
+                events: {
+                    reorderBegan: indexPath => {
+                        reorderSrcIdx = indexPath.row
+                    },
+                    reorderMoved: (fromIndexPath, toIndexPath) => {
+                        reorderDstIdx = toIndexPath.row
+                    },
+                    reorderFinished: data => {
+                        this.reorderCategory(reorderSrcIdx, reorderDstIdx)
+                    } // reorderFinished
+                } // events
+            } // return
+        } else {
+            return {
+                type: "label",
+                props: { text: "无内容", bgcolor: $color("tertiarySurface"), align: $align.center },
+                layout: $layout.fill
+            }
+        }
+    } // makeCategoryEditView
+
+    static async inputCategory() {
+        let text = await $input.text({ placeholder: "输入新类别名" })
+        if (text && text.trim()) {
+            let targetCtgy = text.trim()
+            if (targetCtgy.length > MAX_CATEGORY_LEN) {
+                $ui.warning("类别名称过长")
+                return false
+            } else return targetCtgy
+        } else return false
+    }
+
+    async mergeCategory(sender, indexPath) {
+        let srcCtgy = sender.data[indexPath.row].label.text
+        let targets = this.callBack.getAllCategories()
+        targets.splice(targets.indexOf(srcCtgy), 1)
+        if(!targets.length) {
+            $ui.warning("无可合并的目标")
+            return
+        }
+        let selected = await $picker.data({
+            props: {
+                items: [targets]
+            }
+        })
+
+        if (selected) {
+            let dstCtgy = selected[0]
+            this.callBack.mergeCategory(srcCtgy, dstCtgy)
+            // change category list
+            sender.delete(indexPath)
+            // change main list
+            this.categoryDeleted(dstCtgy)
+            if (this.getCurrentCategory() == dstCtgy) {
+                this.refresh()
+            }
+        }
+    }
+
+    async renameCategoty(sender, indexPath) {
+        let ctgy = sender.data[indexPath.row].label.text
+        let newCtgy = await MemoryListView.inputCategory()
+        if (newCtgy)
+            if (this.callBack.renameCategory(ctgy, newCtgy)) {
+                // change category list
+                sender.delete(indexPath)
+                sender.insert({
+                    indexPath: indexPath,
+                    value: { label: { text: newCtgy } }
+                })
+                // change main list
+                if (this.getCurrentCategory() == ctgy) {
+                    for (const i in this.data) {
+                        this.data[i].contentInfo.category = newCtgy
+                    }
+                }
+                // change category menu
+                $(this.categoryMenuId).items = ["全部"].concat(
+                    this.callBack.getAllCategories()
+                )
+            } else $ui.warning("重命名失败，可能与已有名称重复")
+    }
+    async deleteCategory(sender, indexPath) {
+        let ctgy = sender.data[indexPath.row].label.text
+        let count = this.callBack.getCountByCategory(ctgy)
+
+        let isDelete = true
+        if (count) {
+            let deleteAction = await $ui.alert({
+                title: "确认删除？",
+                message: "该类别下有" + count + "条记录",
+                actions: [
+                    { title: "取消", style: 1 },
+                    { title: "确认", style: 2 }
+                ]
+            })
+            isDelete = deleteAction.index
+        }
+        if (isDelete) {
+            this.callBack.deleteCategory(ctgy)
+
+            // change category list
+            sender.delete(indexPath)
+            // change main list
+            this.categoryDeleted()
+        }
+    }
+
+    changeDescription(sender, indexPath, data) {
+        $input.text({
+            type: $kbType.default,
+            placeholder: "输入新的描述",
+            text: data.contentInfo.desc,
+            handler: text => {
+                text = text.trim()
+                if (text.length >= MIN_DESC_LEN) {
+                    this.callBack.changeDescriptionById(data.id, text)
+                    // change data in list
+                    data.contentInfo.desc = text
+                    data.memory_desc.text = text
+                    this.data[indexPath.row] = data
+                    sender.data = this.data
+                } else {
+                    $ui.warning("描述过短")
+                }
+            }
+        })
+    }
+
+    async changeCategory(sender, indexPath, data) {
+        let currCtgy = data.contentInfo.category
+        let allCtgy = this.callBack.getAllCategories()
+        let index = allCtgy.indexOf(currCtgy)
+        allCtgy.unshift(allCtgy.splice(index, 1)[0])
+        allCtgy.push("新增类别")
+
+        let selectedIndex = 0
+        await $picker.data({
+            props: { items: [allCtgy] },
+            events: {
+                changed: sender => {
+                    selectedIndex = sender.selectedRows[0]
+                }
+            }
+        })
+
+        // category (==0) not changed or undefined
+        if (!selectedIndex) return
+
+        if (selectedIndex == allCtgy.length - 1) {
+            // add new category
+            let newCtgy = await MemoryListView.inputCategory()
+            if (newCtgy) {
+                if (!this.callBack.addCategory(newCtgy))
+                    $ui.warning("添加新类别失败，可能与已有类别名重复")
+                else {
+                    this.callBack.changeCategoryById(data.id, newCtgy)
+                    sender.delete(indexPath)
+                    // this.switchToCategory(newCtgy)
+                }
+            }
+        } else {
+            let targetCtgy = allCtgy[selectedIndex]
+            // change to target category
+            this.callBack.changeCategoryById(data.id, targetCtgy)
+            sender.delete(indexPath)
+            // this.switchToCategory(targetCtgy)
+        }
+    }
+    changeContent(sender, indexPath, data) {
+        let updateListDataWithContentInfo = newContentInfo => {
+            if (data.contentInfo.category == newContentInfo.category) {
+                data.contentInfo = newContentInfo
+                data.memory_desc.text = newContentInfo.desc
+                data.snapshot.src = newContentInfo.sPath
+
+                this.data[indexPath.row] = data
+                sender.data = this.data
+            } else {
+                this.switchToCategory(newContentInfo.category)
+            }
+        }
+
+        this.callBack.changeContentById(data.id, updateListDataWithContentInfo)
+    }
+
+    categoryDeleted(backTo=null) {
+        let oldCtgy = $(this.categoryMenuId).items
+        oldCtgy.unshift() // 全部
+        let curr = this.getCurrentCategory()
+        let currIdx = oldCtgy.indexOf(curr)
+        let newCtgy = this.callBack.getAllCategories()
+
+        if (oldCtgy.length == newCtgy) return // no deletion
+
+        $(this.categoryMenuId).items = ["全部"].concat(newCtgy)
+        if (!curr) { // 当前在 全部
+            this.refresh()
+            return
+        }
+
+        let i = 0
+        let idxDec = 0
+        for (const j in oldCtgy) {
+            if (oldCtgy[j] != newCtgy[i]) {
+                // ctgy is deleted
+                if (currIdx > j) ++idxDec
+                else if (currIdx == j) {
+                    this.switchToCategory(backTo)
+                    return
+                }
+            } else ++i
+        }
+        currIdx -= idxDec
+        currIdx++ // 全部
+        
+        $(this.categoryMenuId).index = currIdx
+        
+    }
+    reorderCategory(reorderSrcIdx, reorderDstIdx) {
+        console.log(reorderSrcIdx, reorderDstIdx)
+        if (reorderSrcIdx != reorderDstIdx) {
+            let allCtgy = this.callBack.getAllCategories()
+            let srcCtgy = allCtgy[reorderSrcIdx]
+            let dstCtgy = allCtgy[reorderDstIdx]
+            this.callBack.exchangeCategoryOrder(srcCtgy, dstCtgy)
+            // change main list
+            let currCtgy = this.getCurrentCategory()
+            if (currCtgy == srcCtgy) {
+                $(this.categoryMenuId).index = reorderDstIdx + 1
+            } else if (currCtgy == dstCtgy) {
+                $(this.categoryMenuId).index = reorderSrcIdx + 1
+            }
+            // change category menu
+            allCtgy = this.callBack.getAllCategories()
+            $(this.categoryMenuId).items = ["全部"].concat(allCtgy)
+        }
+    } // reorderCategory
 } // class
 
 module.exports = MemoryListView

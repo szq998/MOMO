@@ -4,7 +4,7 @@ const MEMORY_RESOURCE_PATH = "./assets/memory"
 $app.theme = "auto"
 $app.listen({
     // 在应用退出之前调用
-    exit: function() {
+    exit: function () {
         if (memoryDB) memoryDB.close()
         console.log("memoryDB closed")
     }
@@ -150,6 +150,25 @@ let mlvCallBack = {
     getAllCategories: () => {
         return memoryDB.getAllCategories()
     },
+    getCountByCategory: ctgy => {
+        return memoryDB.getCountByCategory(ctgy)
+    },
+    addCategory: text => {
+        if (text == "全部") return false
+        else return memoryDB.addCategory(text)
+    },
+    exchangeCategoryOrder: (srcCtgy, dstCtgy) => {
+        memoryDB.exchangeCategoryOrder(srcCtgy, dstCtgy)
+    },
+    deleteCategory: ctgy => {
+        memoryDB.deleteCategory(ctgy)
+    },
+    renameCategory: (ctgy, newName) => {
+        return memoryDB.renameCategory(ctgy, newName)
+    },
+    mergeCategory: (srcCtgy, dstCtgy) => {
+        memoryDB.mergeCategory(srcCtgy, dstCtgy)
+    },
     deleteById: id => {
         memoryDB.deleteById(id)
         // delete resource
@@ -158,6 +177,9 @@ let mlvCallBack = {
     },
     changeDescriptionById: (id, newDesc) => {
         memoryDB.updateDescriptionById(id, newDesc)
+    },
+    changeCategoryById: (id, newCtgy) => {
+        memoryDB.updateCategoryById(id, newCtgy)
     },
     changeContentById: (id, updateListDataWithContentInfo) => {
         let mem = memoryDB.getMemoryById(id)
@@ -234,22 +256,26 @@ let memoryListView = new MemoryListView(
 
 let msvCallBack = {
     addCategory: text => {
-      if (text == "全部") return false
-      else return memoryDB.addCategory(text)
+        if (text == "全部") return false
+        else return memoryDB.addCategory(text)
     },
     getAllCategories: () => {
-      return memoryDB.getAllCategories(false)
+        return memoryDB.getAllCategories(false)
     },
     add: content => {
-        let newId = memoryDB.addMemory(content.type, content.desc, content.category)
+        let newId = memoryDB.addMemory(
+            content.type,
+            content.desc,
+            content.category
+        )
         saveContent(newId, content)
-        memoryListView.refresh(content.category)
+        memoryListView.switchToCategory(content.category)
     },
     modify: (id, content) => {
         memoryDB.updateDescriptionById(id, content.desc)
         memoryDB.updateContentTypeById(id, content.type)
         memoryDB.updateCategoryById(id, content.category)
-        
+
         saveContent(id, content)
     }
 }
@@ -266,7 +292,7 @@ function startMemory() {
             type: $kbType.number,
             text: lastNum,
             placeholder: "输入需要记忆的问题数量",
-            handler: function(text) {
+            handler: function (text) {
                 let num = parseInt(text)
                 if (num && num > 0) {
                     // cache in

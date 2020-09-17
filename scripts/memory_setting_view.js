@@ -8,7 +8,7 @@ const ContentType = {
 
 const MIN_DESC_LEN = 5
 const MAX_CATEGORY_LEN = 10
-const CONTENT_WIDTH = 220
+const CONTENT_WIDTH = 200
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
 class ContentSettingView extends ContentView {
@@ -279,7 +279,7 @@ class MemorySettingView extends PopView {
           layout: (make, view) => {
             make.centerX.equalTo(view.super)
             make.top.equalTo($(this.idsOfMSV.answerSetter).bottom).offset(40)
-            make.size.equalTo($size(CONTENT_WIDTH, 100))
+            make.size.equalTo($(this.idsOfMSV.answerSetter))
           }
         }   
         
@@ -414,13 +414,12 @@ class MemorySettingView extends PopView {
         } else console.error("Error: this method must be called after render.")
     }
 
-    setCategory(category) {
-       let sr = $(this.idsOfMSV.categoryPicker).selectedRows
-       let cpItems = $(this.idsOfMSV.categoryPicker).items[0]
+    setCategory(category, atTail=false) {
+       let cpItems = this.callBack.getAllCategories()
        let index = cpItems.indexOf(category)
-       console.log(cpItems)
-       cpItems.unshift(cpItems.splice(index, 1)[0])
-       console.log(cpItems)
+       if (atTail) cpItems.push(cpItems.splice(index, 1)[0])
+       else cpItems.unshift(cpItems.splice(index, 1)[0])
+       cpItems.push("新增类别")
        $(this.idsOfMSV.categoryPicker).items = [cpItems]
     }
     
@@ -470,6 +469,7 @@ class MemorySettingView extends PopView {
                  return
                }
                content.category = text
+               this.setCategory(text, true)
             } else content.category = cpItems[index]
             
             // generate snapshot
