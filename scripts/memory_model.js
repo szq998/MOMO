@@ -39,6 +39,8 @@ class MemoryModel {
     } // constructor
 
     start(mSnapshots) {
+        if (!mSnapshots.length) return
+
         let memoryItems = new Array(mSnapshots.length)
         mSnapshots.forEach((item, index) => {
             memoryItems[index] = {
@@ -64,8 +66,8 @@ class MemoryModel {
             this.currLItem.data.consecutiveRememberedTime += 1
             console.log(
                 this.getCurrentId() +
-                    " remember not at once, consecutiveRememberedTime is " +
-                    this.currLItem.data.consecutiveRememberedTime
+                " remember not at once, consecutiveRememberedTime is " +
+                this.currLItem.data.consecutiveRememberedTime
             )
             if (this.currLItem.data.consecutiveRememberedTime == 3) {
                 // update database
@@ -93,8 +95,8 @@ class MemoryModel {
     forget() {
         console.log(
             this.getCurrentId() +
-                " forget, last consecutiveRememberedTime is " +
-                this.currLItem.data.consecutiveRememberedTime
+            " forget, last consecutiveRememberedTime is " +
+            this.currLItem.data.consecutiveRememberedTime
         )
         if (this.currLItem.data.isQuestioned) {
             this.currLItem.data.consecutiveRememberedTime = 0
@@ -106,15 +108,15 @@ class MemoryModel {
     } // forget
 
     getCurrentSnapshots() {
-       return this.currLItem ? this.currLItem.data : undefined
+        return this.currLItem ? this.currLItem.data : undefined
     }
 
     getCurrentId() {
         return this.currLItem ? this.currLItem.data.id : undefined
     }
 
-    getCurrentContentType () {
-      return this.currLItem ? this.currLItem.data.contentType : undefined
+    getCurrentContentType() {
+        return this.currLItem ? this.currLItem.data.contentType : undefined
     }
 
     getCurrentDescription() {

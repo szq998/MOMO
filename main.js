@@ -157,8 +157,8 @@ let mlvCallBack = {
         if (text == "全部") return false
         else return memoryDB.addCategory(text)
     },
-    exchangeCategoryOrder: (srcCtgy, dstCtgy) => {
-        memoryDB.exchangeCategoryOrder(srcCtgy, dstCtgy)
+    reorderCategory: (srcCtgy, dstCtgy) => {
+        memoryDB.reorderCategory(srcCtgy, dstCtgy)
     },
     deleteCategory: ctgy => {
         memoryDB.deleteCategory(ctgy)
@@ -296,24 +296,16 @@ function startMemory() {
                 let num = parseInt(text)
                 if (num && num > 0) {
                     // cache in
-                    $cache.set("using", {
-                        lastNum: num
-                    })
-                    let mSnapshots = memoryDB.getMostForgetableMemorySnapshots(
-                        num
-                    )
+                    $cache.set("using", { lastNum: num })
+                    // start model
+                    let mSnapshots = memoryDB.getMostForgetableMemorySnapshots(num, memoryListView.getCurrentCategory())
                     memoryModel.start(mSnapshots)
+                    // start view
                     if (mSnapshots.length > 0)
                         $ui.push({
-                            props: {
-                                title: ""
-                            },
+                            props: { title: "" },
                             views: [memoryView.toRender],
-                            events: {
-                                disappeared: () => {
-                                    memoryListView.refresh()
-                                }
-                            }
+                            events: { disappeared: () => { memoryListView.refresh() } }
                         })
                     // $ui.push
                     else $ui.warning("找不到记录")

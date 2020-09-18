@@ -312,20 +312,27 @@ class MemoryListView {
         else return null
     }
 
-    switchToCategory(category = null) {
+    reloadCategoryMenu() {
         let newCtgy = this.callBack.getAllCategories()
         newCtgy.unshift("全部")
+        $(this.categoryMenuId).items = newCtgy
+    }
 
+    switchToCategory(category = null) {
+        // let newCtgy = this.callBack.getAllCategories()
+        // newCtgy.unshift("全部")
+        this.reloadCategoryMenu()
+        let newCtgy = $(this.categoryMenuId).items
         let index = category ? newCtgy.indexOf(category) : 0
         if (index == -1) {
             console.error("Error: category not found.")
             return
         }
 
-        $(this.categoryMenuId).items = newCtgy
+        // $(this.categoryMenuId).items = newCtgy
         $(this.categoryMenuId).index = index
         this.categoryChanged()
-        
+
     }
 
     categoryChanged() {
@@ -367,19 +374,12 @@ class MemoryListView {
         let allCtgy = this.callBack.getAllCategories()
         if (allCtgy.length) {
             let template = {
-                props: {
-                    bgcolor: $color("clear")
-                },
+                props: { bgcolor: $color("clear") },
                 views: [
                     {
                         type: "label",
-                        props: {
-                            id: "label"
-                        },
-                        layout: (make, view) => {
-                            make.leading.equalTo(15)
-                            make.centerY.equalTo(0)
-                        }
+                        props: { id: "label", align: $align.center },
+                        layout: $layout.fill
                     }
                 ]
             } // template
@@ -455,7 +455,7 @@ class MemoryListView {
         let srcCtgy = sender.data[indexPath.row].label.text
         let targets = this.callBack.getAllCategories()
         targets.splice(targets.indexOf(srcCtgy), 1)
-        if(!targets.length) {
+        if (!targets.length) {
             $ui.warning("无可合并的目标")
             return
         }
@@ -572,11 +572,12 @@ class MemoryListView {
             // add new category
             let newCtgy = await MemoryListView.inputCategory()
             if (newCtgy) {
-                if (!this.callBack.addCategory(newCtgy))
+                if (!this.callBack.addCategory(newCtgy)) {
                     $ui.warning("添加新类别失败，可能与已有类别名重复")
-                else {
+                    return
+                } else {
                     this.callBack.changeCategoryById(data.id, newCtgy)
-                    sender.delete(indexPath)
+                    // sender.delete(indexPath)
                     // this.switchToCategory(newCtgy)
                 }
             }
@@ -584,13 +585,16 @@ class MemoryListView {
             let targetCtgy = allCtgy[selectedIndex]
             // change to target category
             this.callBack.changeCategoryById(data.id, targetCtgy)
-            sender.delete(indexPath)
+            // sender.delete(indexPath)
             // this.switchToCategory(targetCtgy)
         }
+        sender.delete(indexPath)
+        this.reloadCategoryMenu()
     }
     changeContent(sender, indexPath, data) {
         let updateListDataWithContentInfo = newContentInfo => {
             if (data.contentInfo.category == newContentInfo.category) {
+                // category not changed
                 data.contentInfo = newContentInfo
                 data.memory_desc.text = newContentInfo.desc
                 data.snapshot.src = newContentInfo.sPath
@@ -598,14 +602,16 @@ class MemoryListView {
                 this.data[indexPath.row] = data
                 sender.data = this.data
             } else {
-                this.switchToCategory(newContentInfo.category)
+                // category also changed
+                // this.switchToCategory(newContentInfo.category)
+                if (this.getCurrentCategory() != null) sender.delete(indexPath)
             }
         }
 
         this.callBack.changeContentById(data.id, updateListDataWithContentInfo)
     }
 
-    categoryDeleted(backTo=null) {
+    categoryDeleted(backTo = null) {
         let oldCtgy = $(this.categoryMenuId).items
         oldCtgy.unshift() // 全部
         let curr = this.getCurrentCategory()
@@ -634,27 +640,30 @@ class MemoryListView {
         }
         currIdx -= idxDec
         currIdx++ // 全部
-        
+
         $(this.categoryMenuId).index = currIdx
-        
+
     }
     reorderCategory(reorderSrcIdx, reorderDstIdx) {
-        console.log(reorderSrcIdx, reorderDstIdx)
         if (reorderSrcIdx != reorderDstIdx) {
             let allCtgy = this.callBack.getAllCategories()
-            let srcCtgy = allCtgy[reorderSrcIdx]
-            let dstCtgy = allCtgy[reorderDstIdx]
-            this.callBack.exchangeCategoryOrder(srcCtgy, dstCtgy)
             // change main list
             let currCtgy = this.getCurrentCategory()
-            if (currCtgy == srcCtgy) {
-                $(this.categoryMenuId).index = reorderDstIdx + 1
-            } else if (currCtgy == dstCtgy) {
-                $(this.categoryMenuId).index = reorderSrcIdx + 1
+            if (currCtgy) {
+                let currIdx = allCtgy.indexOf(currCtgy)
+                if (currIdx == reorderSrcIdx)
+                    $(this.categoryMenuId).index = reorderDstIdx + 1
+                else if (reorderSrcIdx < reorderDstIdx && currIdx > reorderSrcIdx && currIdx <= reorderDstIdx)
+                    $(this.categoryMenuId).index = currIdx + 1 - 1 // consider 全部
+                else if (reorderSrcIdx > reorderDstIdx && currIdx < reorderSrcIdx && currIdx >= reorderDstIdx)
+                    $(this.categoryMenuId).index = currIdx + 1 + 1 // consider 全部
             }
+            // update database
+            let srcCtgy = allCtgy[reorderSrcIdx]
+            let dstCtgy = allCtgy[reorderDstIdx]
+            this.callBack.reorderCategory(srcCtgy, dstCtgy)
             // change category menu
-            allCtgy = this.callBack.getAllCategories()
-            $(this.categoryMenuId).items = ["全部"].concat(allCtgy)
+            this.reloadCategoryMenu()
         }
     } // reorderCategory
 } // class

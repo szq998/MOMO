@@ -42,8 +42,8 @@ class MemoryDatabase {
 
         let nextOrd
         this.db.query("SELECT corder FROM Category ORDER BY corder DESC LIMIT 1", (rs, er) => {
-            if(rs) {
-                if(rs.next()) nextOrd = rs.values.corder + 1
+            if (rs) {
+                if (rs.next()) nextOrd = rs.values.corder + 1
                 else nextOrd = 0
             }
         })
@@ -202,16 +202,21 @@ class MemoryDatabase {
         return mem
     }
 
-    getMostForgetableMemorySnapshots(num) {
+    getMostForgetableMemorySnapshots(num, category = null) {
+        let sql = "SELECT id, type, description, degree FROM Memory WHERE time=? "
+        let args = [NEWLY_ADDED_TIME]
+        if (category) {
+            sql += " AND category=? "
+            args.push(this.getCategoryIdByName(category))
+        }
+        sql += " LIMIT ?"
+        args.push(num)
+
         let snapshots = []
-        // query newly add memoryif
         this.db.query(
             {
-                sql:
-                    "SELECT id, type, description, degree FROM Memory \
-                    WHERE time=? \
-                    LIMIT ?",
-                args: [NEWLY_ADDED_TIME, num]
+                sql: sql,
+                args: args
             },
             rs => {
                 while (rs.next()) {
@@ -274,17 +279,17 @@ class MemoryDatabase {
 
     getCount() {
         let rs = this.db.query("SELECT count(*) FROM Memory").result
-        if(rs){
-            if(rs.next()) return rs.values["count(*)"]
+        if (rs) {
+            if (rs.next()) return rs.values["count(*)"]
             else return 0
         }
     }
 
     getCountByCategory(ctgy) {
         let ctgyID = this.getCategoryIdByName(ctgy)
-        let rs = this.db.query({sql: "SELECT count(*) FROM Memory WHERE category=?", args: [ctgyID]}).result
-        if(rs){
-            if(rs.next()) return rs.values["count(*)"]
+        let rs = this.db.query({ sql: "SELECT count(*) FROM Memory WHERE category=?", args: [ctgyID] }).result
+        if (rs) {
+            if (rs.next()) return rs.values["count(*)"]
             else return 0
         }
     }
@@ -358,9 +363,20 @@ class MemoryDatabase {
 
     deleteCategory(ctgy) {
         let ctgyID = this.getCategoryIdByName(ctgy)
+        let ord
         this.db.update({
             sql: "DELETE FROM Memory WHERE category=?",
             args: [ctgyID]
+        })
+        this.db.query({
+            sql: "SELECT corder FROM Category WHERE name=?",
+            args: [ctgy]
+        }, (rs, er) => {
+            if (rs && rs.next()) ord = rs.values.corder
+        })
+        this.db.update({
+            sql: "UPDATE Category SET corder=corder-1 WHERE corder>?",
+            args: [ord]
         })
         this.db.update({
             sql: "DELETE FROM Category WHERE name=?",
@@ -395,7 +411,8 @@ class MemoryDatabase {
         this.deleteCategory(srcCtgy)
     }
 
-    exchangeCategoryOrder(srcCtgy, dstCtgy) {
+    reorderCategory(srcCtgy, dstCtgy) {
+        let sID = this.getCategoryIdByName(srcCtgy)
         let sOrd, dOrd
         this.db.query({
             sql: "SELECT corder FROM Category WHERE name=?",
@@ -409,15 +426,17 @@ class MemoryDatabase {
         }, (rs, er) => {
             if (rs && rs.next()) dOrd = rs.values.corder
         })
-
+        let sql
+        if (sOrd < dOrd) sql = "UPDATE Category SET corder=corder-1 WHERE corder>? AND corder<=?"
+        else sql = "UPDATE Category SET corder=corder+1 WHERE corder<? AND corder>=?"
         this.db.update({
-            sql: "UPDATE Category SET corder=? WHERE name=?",
-            args: [dOrd, srcCtgy]
+            sql: sql,
+            args: [sOrd, dOrd]
         })
 
         this.db.update({
-            sql: "UPDATE Category SET corder=? WHERE name=?",
-            args: [sOrd, dstCtgy]
+            sql: "UPDATE Category SET corder=? WHERE id=?",
+            args: [dOrd, sID]
         })
     }
 
