@@ -525,6 +525,7 @@ class MemorySettingView extends PopView {
             layout: $layout.center,
             events: {
                 changed: sender => {
+                    $devide.taptic(2)
                     this.questionSetter.showNoContent(this.getContentType())
                     this.answerSetter.showNoContent(this.getContentType())
                 }
