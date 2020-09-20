@@ -41,8 +41,8 @@ class MainView {
         })
         this.memoryListView = new MemoryListView(this.memoryListID, callBackForMLV, (make, view) => {
             make.top.equalTo(view.prev.bottom)
-            make.left.right.equalTo(0)
-            make.bottom.equalTo(view.prev.prev.top)
+            make.left.bottom.right.equalTo(0)
+            // make.bottom.equalTo(view.prev.prev.top)
         })
 
         // set relational callback
@@ -60,7 +60,7 @@ class MainView {
         this.toRender = {
             type: "view",
             props: { bgcolor: $color("#F2F1F6", "primarySurface") },
-            views: [buttonArea, this.categoryMenuView.toRender, this.memoryListView.toRender],
+            views: [this.categoryMenuView.toRender, this.memoryListView.toRender, buttonArea],
             layout: $layout.fill
         }
 

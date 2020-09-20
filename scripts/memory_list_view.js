@@ -23,6 +23,7 @@ class MemoryListView {
 
         this.headerId = "header_of_" + this.id
         this.footerId = "footer_of_" + this.id
+        this.footerTextId = "text_of_" + this.footerId
 
         this.toRender = {
             type: "list",
@@ -119,16 +120,32 @@ class MemoryListView {
 
     makeFooter() {
         return {
-            type: "label",
+            type: "view", 
             props: {
                 id: this.footerId,
-                height: 20,
-                text: "加载中...",
-                textColor: $color("#AAAAAA"),
-                align: $align.center,
-                font: $font(12),
-                hidden: true
-            }
+                height: 90
+            },
+            layout: (make, view) => {
+                make.center.equalTo(view.super)
+            }, 
+            views: [
+                {
+                    type: "label",
+                    props: {
+                        id: this.footerTextId,
+                        text: "加载中...",
+                        textColor: $color("#AAAAAA"),
+                        align: $align.center,
+                        font: $font(12),
+                        hidden: true
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super)
+                        make.top.equalTo(view.super)
+                        make.height.equalTo(20)
+                    }
+                }
+            ]
         }
     }
 
@@ -223,11 +240,11 @@ class MemoryListView {
 
     // callBacks
     bottomReached(sender) {
-        $(this.footerId).hidden = false
+        $(this.footerTextId).hidden = false
         let newData = this.getNextPageData()
         this.data = this.data.concat(newData)
         $delay(0.5, () => {
-            $(this.footerId).hidden = true
+            $(this.footerTextId).hidden = true
             sender.endFetchingMore()
             sender.data = this.data
         })
