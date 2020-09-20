@@ -1,3 +1,6 @@
+const SCREEN_HEIGHT = $device.info.screen.height
+const SCREEN_WIDTH = $device.info.screen.width
+const SCREEN_SCALE = $device.info.screen.scale
 const SNAPSHOT_WIDTH = 80
 const SNAPSHOT_INSET = 5
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
@@ -11,11 +14,13 @@ class MemoryListView {
     constructor(id, callBack, layout) {
         this.id = id
         this.callBack = callBack
-        this.nextPage
+        this.nextPage = 0
         this.data = []
-        this.pageSize
-        this.estimatedRowHeight =
-            SNAPSHOT_WIDTH / CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET
+        
+        this.estimatedRowHeight = SNAPSHOT_WIDTH / CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET
+        this.pageSize = this.estimatePageSize()
+        console.log("row height", this.estimatedRowHeight)
+        console.log("page size is " + this.pageSize)
 
         this.headerId = "header_of_" + this.id
         this.footerId = "footer_of_" + this.id
@@ -36,21 +41,7 @@ class MemoryListView {
             }, // props
             events: {
                 ready: sender => {
-                    sender.relayout()
-
-                    let superSize = sender.super.size
-                    let biggerSpan =
-                        superSize.height > superSize.width
-                            ? superSize.height
-                            : superSize.width
-                    biggerSpan = biggerSpan * $device.info.screen.scale
-                    this.pageSize =
-                        parseInt(biggerSpan / this.estimatedRowHeight) + 1
-                    console.log("page size is " + this.pageSize)
-
-                    this.nextPage = 0
-                    this.data = this.getNextPageData()
-                    sender.data = this.data
+                    this.categoryChanged()
                 },
                 pulled: sender => {
                     this.refreshMemoryList()
@@ -226,6 +217,11 @@ class MemoryListView {
         }
     }
 
+    estimatePageSize() {
+        let biggerSpan = SCREEN_HEIGHT > SCREEN_WIDTH ? SCREEN_HEIGHT : SCREEN_WIDTH
+        return parseInt(biggerSpan * SCREEN_SCALE / this.estimatedRowHeight) + 1
+    }
+
     // callBacks
     bottomReached(sender) {
         $(this.footerId).hidden = false
@@ -296,7 +292,7 @@ class MemoryListView {
             let currListCtgy = this.callBack.getCurrentCategory()
             if (currListCtgy) sender.delete(indexPath)
         }
-        
+
 
     }
 
