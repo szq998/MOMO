@@ -173,7 +173,6 @@ class MemoryDatabase {
                     values.category = values.name
                     delete values.name
                     memory.push(values)
-                    memory.push(values)
                 }
             }
         ) // query
