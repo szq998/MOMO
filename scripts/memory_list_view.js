@@ -1,6 +1,5 @@
 const SCREEN_HEIGHT = $device.info.screen.height
 const SCREEN_WIDTH = $device.info.screen.width
-const SCREEN_SCALE = $device.info.screen.scale
 const SNAPSHOT_WIDTH = 80
 const SNAPSHOT_INSET = 5
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
@@ -17,7 +16,7 @@ class MemoryListView {
         this.nextPage = 0
         this.data = []
         
-        this.estimatedRowHeight = SNAPSHOT_WIDTH / CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET
+        this.estimatedRowHeight = SNAPSHOT_WIDTH * CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET
         this.pageSize = this.estimatePageSize()
         console.log("row height", this.estimatedRowHeight)
         console.log("page size is " + this.pageSize)
@@ -219,7 +218,7 @@ class MemoryListView {
 
     estimatePageSize() {
         let biggerSpan = SCREEN_HEIGHT > SCREEN_WIDTH ? SCREEN_HEIGHT : SCREEN_WIDTH
-        return parseInt(biggerSpan * SCREEN_SCALE / this.estimatedRowHeight) + 1
+        return parseInt(biggerSpan / this.estimatedRowHeight) + 1
     }
 
     // callBacks
