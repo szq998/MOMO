@@ -7,7 +7,6 @@ const ContentType = {
 }
 
 const MIN_DESC_LEN = 5
-const MAX_CATEGORY_LEN = 10
 const CONTENT_WIDTH = 200
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
@@ -177,12 +176,11 @@ class ContentSettingView extends ContentView {
 class MemorySettingView extends PopView {
     constructor(id, callBack) {
         super(id)
-
         this.callBack = callBack
 
-        this.isModifying = false
         this.modifyingId
-        this.doAfterModified
+        this.addingFinish
+        this.editingFinish
 
         this.idsOfMSV = {
             descInputLabel: "description_nput_label_of_" + id,
@@ -343,6 +341,7 @@ class MemorySettingView extends PopView {
 
     doAfterClose() {
         this.resetContent()
+        if (this.editingFinish) this.editingFinish = undefined
     }
 
     makeLabelView(id, text, layout) {
@@ -452,38 +451,34 @@ class MemorySettingView extends PopView {
             let index = $(this.idsOfMSV.categoryPicker).selectedRows[0]
             let cpItems = $(this.idsOfMSV.categoryPicker).items[0]
             if(index == cpItems.length - 1){
-               // add new category
-               let text = await $input.text({
-                 type: $kbType.default,
-                 placeholder: "输入新类别名",
-               })
-               // no input
-               if(typeof text != "string") return
-               text = text.trim()
-               if(text.length >= MAX_CATEGORY_LEN) {
-                 $ui.warning("类别名过长")
-                 return
+               let newCtgy = await this.callBack.inputCategory()
+               if (!newCtgy) return
+
+               if (!this.callBack.addCategory(newCtgy)) {
+                    $ui.warning("添加新类别失败，可能与已有类别重复")
+                    return
                }
-               if (!this.callBack.addCategory(text)) {
-                 $ui.warning("新增类别失败，可能与已有类别重名")
-                 return
-               }
-               content.category = text
-               this.setCategory(text, true)
+
+               content.category = newCtgy
+               this.setCategory(newCtgy, true)
             } else content.category = cpItems[index]
             
             // generate snapshot
             content.snapshot = this.generateSnapshot()
             
-            if (this.isModifying) {
-                this.isModifying = false
-
+            if (this.editingFinish) {
                 this.callBack.modify(this.modifyingId, content)
-                this.doAfterModified()
+
+                this.editingFinish()
+                this.editingFinish = undefined
+
                 $ui.success("修改成功")
                 this.disappear()
             } else {
                 this.callBack.add(content)
+
+                this.addingFinish(content.category)
+
                 $ui.success("添加成功")
                 this.resetContent()
             }
@@ -499,18 +494,27 @@ class MemorySettingView extends PopView {
         this.answerSetter.showNoContent(this.getContentType())
     }
 
-    editMemory(id, oldContent, doAfterModified) {
+    addMemory() {
+        this.appear()
+
+        return new Promise(resolve => {
+            this.addingFinish = resolve
+        })
+    }
+
+    editMemory(id, oldContent) {
         this.setContentType(oldContent.type)
         $(this.idsOfMSV.descInput).text = oldContent.desc
         this.questionSetter.changeContent(oldContent.type, oldContent.question)
         this.answerSetter.changeContent(oldContent.type, oldContent.answer)
 
-        this.isModifying = true
         this.modifyingId = id
-        this.doAfterModified = doAfterModified
-
+       
         this.appear()
         this.setCategory(oldContent.category)
+        return new Promise(resolve => {
+            this.editingFinish = resolve
+        })
     } // editMemory
 
     getTypeSwitchTab() {
@@ -525,7 +529,7 @@ class MemorySettingView extends PopView {
             layout: $layout.center,
             events: {
                 changed: sender => {
-                    $devide.taptic(2)
+                    $device.taptic(2)
                     this.questionSetter.showNoContent(this.getContentType())
                     this.answerSetter.showNoContent(this.getContentType())
                 }

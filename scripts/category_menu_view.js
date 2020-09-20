@@ -81,6 +81,7 @@ class CategoryMenuView{
                 events: {
                     reorderBegan: indexPath => {
                         reorderSrcIdx = indexPath.row
+                        reorderDstIdx = indexPath.row
                     },
                     reorderMoved: (fromIndexPath, toIndexPath) => {
                         reorderDstIdx = toIndexPath.row
@@ -116,18 +117,20 @@ class CategoryMenuView{
             isDelete = deleteAction.index
         }
         if (isDelete) {
+            let oldCtgy = this.callBack.getAllCategories()
             this.callBack.deleteCategory(ctgy)
+            let newCtgy = this.callBack.getAllCategories()
 
             // change category list
             sender.delete(indexPath)
             // change main list
-            this.categoryRemoved()
+            this.categoryRemoved(oldCtgy, newCtgy)
         }
     }
 
     async renameCategoty(sender, indexPath) {
         let oldName = sender.data[indexPath.row].label.text
-        let newName = await this.callBack.inputCategory()
+        let newName = await this.callBack.inputCategory(oldName)
         if (newName)
             if (this.callBack.renameCategory(oldName, newName)) {
                 // change category list
@@ -196,15 +199,16 @@ class CategoryMenuView{
         }
     } // reorderCategory
 
-    categoryRemoved(oldCtgy, newCtgy/*, backTo = null */) {
+    categoryRemoved(oldCtgy, newCtgy, backTo = null) {
         // let oldCtgy = $(this.categoryMenuId).items
         // oldCtgy.unshift() // 全部
         let curr = this.getCurrentCategory()
         let currIdx = oldCtgy.indexOf(curr)
         // let newCtgy = this.callBack.getAllCategories()
-        if (oldCtgy.length == newCtgy) return // no deletion
+        if (oldCtgy.length == newCtgy.length) return // no deletion
         // $(this.categoryMenuId).items = ["全部"].concat(newCtgy)
         if (!curr) { // 当前在 全部
+            this.reloadCategory()
             this.callBack.doAfterCategoryChanged()
             return
         }
@@ -217,6 +221,8 @@ class CategoryMenuView{
                 if (currIdx > j) ++idxDec
                 else if (currIdx == j) {
                     // this.switchToCategory(backTo)
+                    this.reloadCategory()
+                    this.changeToCategory(backTo)
                     this.callBack.doAfterCategoryChanged()
                     return
                 }
@@ -225,6 +231,7 @@ class CategoryMenuView{
         currIdx -= idxDec
         currIdx++ // 全部
 
+        this.reloadCategory()
         $(this.id).index = currIdx
     }
 
@@ -238,6 +245,19 @@ class CategoryMenuView{
         let index = $(this.id).index
         if (index > 0) return $(this.id).items[index]
         else return null
+    }
+
+    changeToCategory(ctgy) {
+        if (!ctgy) $(this.id).index = 0
+        else {
+            let allCtgy = $(this.id).items
+            let index = allCtgy.indexOf(ctgy)
+            if (index == -1) {
+                console.error("Error: category not found.")
+                return
+            }
+            $(this.id).index = index
+        }
     }
 
     // switchToCategory(ctgy) {

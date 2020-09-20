@@ -18,7 +18,8 @@ const ContentType = {
 let MemoryDatabase = require("./scripts/memory_database.js")
 let MemoryModel = require("./scripts/memory_model.js")
 let MemoryView = require("./scripts/memory_view.js")
-let MemoryListView = require("./scripts/memory_list_view.js")
+// let MemoryListView = require("./scripts/memory_list_view.js")
+let MainView = require("./scripts/main_view.js")
 let MemorySettingView = require("./scripts/memory_setting_view.js")
 
 function getDaysAgo(lts0) {
@@ -126,7 +127,7 @@ let mmCallBack = {
     finish: () => {
         $ui.pop()
         $ui.success("完成")
-        memoryListView.refresh()
+        mainView.refreshMemoryList()
     }
 }
 let memoryModel = new MemoryModel(memoryDB, mmCallBack)
@@ -146,7 +147,11 @@ let mvCallBack = {
 }
 let memoryView = new MemoryView("memory_view", mvCallBack)
 
-let mlvCallBack = {
+let mavCallBack = {
+    startMemory: startMemory,
+    addMemory: () => { 
+        return memorySettingView.addMemory()
+    },
     getAllCategories: () => {
         return memoryDB.getAllCategories()
     },
@@ -181,7 +186,7 @@ let mlvCallBack = {
     changeCategoryById: (id, newCtgy) => {
         memoryDB.updateCategoryById(id, newCtgy)
     },
-    changeContentById: (id, updateListDataWithContentInfo) => {
+    changeContentById: (id) => {
         let mem = memoryDB.getMemoryById(id)
         let { question, answer } = getContent(id, mem.type)
         let oldContent = {
@@ -192,21 +197,21 @@ let mlvCallBack = {
             category: mem.category
         }
 
-        let doAfterModified = () => {
-            let newMem = memoryDB.getMemoryById(id)
-            let { qPath, aPath, sPath } = getContentPath(id, newMem.type)
-            let newInfo = {
-                type: newMem.type,
-                desc: newMem.description,
-                qPath: qPath,
-                aPath: aPath,
-                sPath: sPath,
-                category: newMem.category
-            }
-            updateListDataWithContentInfo(newInfo)
-        }
-
-        memorySettingView.editMemory(id, oldContent, doAfterModified)
+        return new Promise((resolve) => {
+            memorySettingView.editMemory(id, oldContent).then(() => {
+                let newMem = memoryDB.getMemoryById(id)
+                let { qPath, aPath, sPath } = getContentPath(id, newMem.type)
+                let newInfo = {
+                    type: newMem.type,
+                    desc: newMem.description,
+                    qPath: qPath,
+                    aPath: aPath,
+                    sPath: sPath,
+                    category: newMem.category
+                }
+                resolve(newInfo)
+            })
+        })    
     },
     getMemoryByPage: (pageNo, pageSize, category) => {
         let memory = []
@@ -245,16 +250,13 @@ let mlvCallBack = {
         })
     }
 }
-let memoryListView = new MemoryListView(
-    "memory_list_view",
-    mlvCallBack,
-    (make, view) => {
-        make.left.top.right.equalTo(0)
-        make.bottom.equalTo(view.prev.top).offset(-15)
-    }
+let mainView = new MainView(
+    "main_view",
+    mavCallBack
 )
 
 let msvCallBack = {
+    inputCategory: MainView.inputCategory, 
     addCategory: text => {
         if (text == "全部") return false
         else return memoryDB.addCategory(text)
@@ -269,7 +271,7 @@ let msvCallBack = {
             content.category
         )
         saveContent(newId, content)
-        memoryListView.switchToCategory(content.category)
+        // memoryListView.switchToCategory(content.category)
     },
     modify: (id, content) => {
         memoryDB.updateDescriptionById(id, content.desc)
@@ -298,14 +300,14 @@ function startMemory() {
                     // cache in
                     $cache.set("using", { lastNum: num })
                     // start model
-                    let mSnapshots = memoryDB.getMostForgetableMemorySnapshots(num, memoryListView.getCurrentCategory())
+                    let mSnapshots = memoryDB.getMostForgetableMemorySnapshots(num, mainView.getCurrentCategory())
                     memoryModel.start(mSnapshots)
                     // start view
                     if (mSnapshots.length > 0)
                         $ui.push({
                             props: { title: "" },
                             views: [memoryView.toRender],
-                            events: { disappeared: () => { memoryListView.refresh() } }
+                            events: { disappeared: () => { mainView.refreshMemoryList() } }
                         })
                     // $ui.push
                     else $ui.warning("找不到记录")
@@ -316,42 +318,42 @@ function startMemory() {
     } else $ui.warning("找不到记录，请添加")
 } // start memory
 
-function addMemory() {
-    memorySettingView.appear()
-}
+// function addMemory() {
+//     memorySettingView.appear()
+// }
 
-function makeFirstPageButton(text, callBack) {
-    return {
-        type: "button",
-        props: {
-            title: text
-        },
-        events: {
-            tapped: callBack
-        } // events
-    } // returned view
-}
+// function makeFirstPageButton(text, callBack) {
+//     return {
+//         type: "button",
+//         props: {
+//             title: text
+//         },
+//         events: {
+//             tapped: callBack
+//         } // events
+//     } // returned view
+// }
 
-let buttonArea = {
-    type: "stack",
-    props: {
-        id: "button_area",
+// let buttonArea = {
+//     type: "stack",
+//     props: {
+//         id: "button_area",
 
-        axis: $stackViewAxis.horizontal,
-        spacing: 20,
-        distribution: $stackViewDistribution.fillEqually,
-        stack: {
-            views: [
-                makeFirstPageButton("开始记忆", startMemory),
-                makeFirstPageButton("添加记录", addMemory)
-            ] // views
-        } // stack
-    }, // props
-    layout: (make, view) => {
-        make.height.equalTo(50)
-        make.bottom.left.right.inset(15)
-    } // layout
-} // buttonArea
+//         axis: $stackViewAxis.horizontal,
+//         spacing: 20,
+//         distribution: $stackViewDistribution.fillEqually,
+//         stack: {
+//             views: [
+//                 makeFirstPageButton("开始记忆", startMemory),
+//                 makeFirstPageButton("添加记录", addMemory)
+//             ] // views
+//         } // stack
+//     }, // props
+//     layout: (make, view) => {
+//         make.height.equalTo(50)
+//         make.bottom.left.right.inset(15)
+//     } // layout
+// } // buttonArea
 
 $ui.render({
     props: {
@@ -359,5 +361,5 @@ $ui.render({
         bgcolor: $color("#F2F1F6", "primarySurface"),
         titleView: memorySettingView.getNavBarView()
     },
-    views: [buttonArea, memoryListView.toRender, memorySettingView.toRender]
+    views: [mainView.toRender, memorySettingView.toRender]
 })
