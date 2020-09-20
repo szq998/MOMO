@@ -94,7 +94,7 @@ class MainView {
         } // returned view
     }
 
-    static async inputCategory(oldCtgy="") {
+    static async inputCategory(oldCtgy = "") {
         let text = await $input.text({ text: oldCtgy, placeholder: "输入新类别名" })
         if (text && text.trim()) {
             let newCtgy = text.trim()
@@ -104,8 +104,8 @@ class MainView {
             } else return newCtgy
         } else return false
     }
-    
-    static async inputDescription(oldDesc="") {
+
+    static async inputDescription(oldDesc = "") {
         let text = await $input.text({ text: oldDesc, placeholder: "输入新描述" })
         if (text && text.trim()) {
             let newDesc = text.trim()
@@ -117,7 +117,7 @@ class MainView {
     }
 
     addMemory() {
-        this.callBack.addMemory().then( ctgy => {
+        this.callBack.addMemory().then(ctgy => {
             let currListCtgy = this.categoryMenuView.getCurrentCategory()
             if (!currListCtgy || currListCtgy == ctgy) {
                 this.memoryListView.refreshMemoryList()

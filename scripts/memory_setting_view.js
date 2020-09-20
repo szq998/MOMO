@@ -266,30 +266,30 @@ class MemorySettingView extends PopView {
         )
 
         let categoryPicker = {
-          type: "picker",
-          props: {
-            id: this.idsOfMSV.categoryPicker,
-            items: [["新增类别"]],
-            borderWidth: 1,
-            borderColor: $color("gray"),
-            cornerRadius: 10
-          },
-          layout: (make, view) => {
-            make.centerX.equalTo(view.super)
-            make.top.equalTo($(this.idsOfMSV.answerSetter).bottom).offset(40)
-            make.size.equalTo($(this.idsOfMSV.answerSetter))
-          }
-        }   
-        
+            type: "picker",
+            props: {
+                id: this.idsOfMSV.categoryPicker,
+                items: [["新增类别"]],
+                borderWidth: 1,
+                borderColor: $color("gray"),
+                cornerRadius: 10
+            },
+            layout: (make, view) => {
+                make.centerX.equalTo(view.super)
+                make.top.equalTo($(this.idsOfMSV.answerSetter).bottom).offset(40)
+                make.size.equalTo($(this.idsOfMSV.answerSetter))
+            }
+        }
+
         let categoryPickingLabel = this.makeLabelView(
-                    this.idsOfMSV.categoryPickingLabel,
-                    "类别",
-                    (make, view) => {
-                        make.leading.equalTo($(this.idsOfMSV.categoryPicker).leading)
-                        make.bottom.equalTo($(this.idsOfMSV.categoryPicker).top).offset(-3)
-                    }
-                )
-        
+            this.idsOfMSV.categoryPickingLabel,
+            "类别",
+            (make, view) => {
+                make.leading.equalTo($(this.idsOfMSV.categoryPicker).leading)
+                make.bottom.equalTo($(this.idsOfMSV.categoryPicker).top).offset(-3)
+            }
+        )
+
         let viewsOfMemorySettingView = [
             descInput,
             //            contentTypeSwitch,
@@ -315,7 +315,7 @@ class MemorySettingView extends PopView {
         let cpItems = this.callBack.getAllCategories()
         cpItems.push("新增类别")
         $(this.idsOfMSV.categoryPicker).items = [cpItems]
-        
+
         $(this.idsOfMSV.navBarView).hidden = false
         $ui.animate({
             animation: () => {
@@ -413,15 +413,15 @@ class MemorySettingView extends PopView {
         } else console.error("Error: this method must be called after render.")
     }
 
-    setCategory(category, atTail=false) {
-       let cpItems = this.callBack.getAllCategories()
-       let index = cpItems.indexOf(category)
-       if (atTail) cpItems.push(cpItems.splice(index, 1)[0])
-       else cpItems.unshift(cpItems.splice(index, 1)[0])
-       cpItems.push("新增类别")
-       $(this.idsOfMSV.categoryPicker).items = [cpItems]
+    setCategory(category, atTail = false) {
+        let cpItems = this.callBack.getAllCategories()
+        let index = cpItems.indexOf(category)
+        if (atTail) cpItems.push(cpItems.splice(index, 1)[0])
+        else cpItems.unshift(cpItems.splice(index, 1)[0])
+        cpItems.push("新增类别")
+        $(this.idsOfMSV.categoryPicker).items = [cpItems]
     }
-    
+
     generateSnapshot() {
         let type = this.getContentType()
         let snapshot
@@ -450,22 +450,22 @@ class MemorySettingView extends PopView {
             // decide category
             let index = $(this.idsOfMSV.categoryPicker).selectedRows[0]
             let cpItems = $(this.idsOfMSV.categoryPicker).items[0]
-            if(index == cpItems.length - 1){
-               let newCtgy = await this.callBack.inputCategory()
-               if (!newCtgy) return
+            if (index == cpItems.length - 1) {
+                let newCtgy = await this.callBack.inputCategory()
+                if (!newCtgy) return
 
-               if (!this.callBack.addCategory(newCtgy)) {
+                if (!this.callBack.addCategory(newCtgy)) {
                     $ui.warning("添加新类别失败，可能与已有类别重复")
                     return
-               }
+                }
 
-               content.category = newCtgy
-               this.setCategory(newCtgy, true)
+                content.category = newCtgy
+                this.setCategory(newCtgy, true)
             } else content.category = cpItems[index]
-            
+
             // generate snapshot
             content.snapshot = this.generateSnapshot()
-            
+
             if (this.editingFinish) {
                 this.callBack.modify(this.modifyingId, content)
 
@@ -509,7 +509,7 @@ class MemorySettingView extends PopView {
         this.answerSetter.changeContent(oldContent.type, oldContent.answer)
 
         this.modifyingId = id
-       
+
         this.appear()
         this.setCategory(oldContent.category)
         return new Promise(resolve => {

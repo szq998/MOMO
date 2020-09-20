@@ -1,4 +1,4 @@
-class CategoryMenuView{
+class CategoryMenuView {
     constructor(id, callBack, layout) {
         this.id = id
         this.callBack = callBack
@@ -10,7 +10,7 @@ class CategoryMenuView{
                 items: ["全部"].concat(this.callBack.getAllCategories()),
                 // dynamicWidth: true   waiting for fix of jsbox
             },
-            layout: layout, 
+            layout: layout,
             events: {
                 changed: sender => {
                     this.callBack.doAfterCategoryChanged()

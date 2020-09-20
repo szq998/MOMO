@@ -149,7 +149,7 @@ let memoryView = new MemoryView("memory_view", mvCallBack)
 
 let mavCallBack = {
     startMemory: startMemory,
-    addMemory: () => { 
+    addMemory: () => {
         return memorySettingView.addMemory()
     },
     getAllCategories: () => {
@@ -211,17 +211,13 @@ let mavCallBack = {
                 }
                 resolve(newInfo)
             })
-        })    
+        })
     },
     getMemoryByPage: (pageNo, pageSize, category) => {
         let memory = []
-        if (pageNo == 0) {
-            memory = memory.concat(memoryDB.getNewlyAddedMemory(category))
-        }
-        memory = memory.concat(
-            memoryDB.getMemory(pageNo, pageSize, category, false)
-        )
-
+        if (pageNo == 0) memory = memory.concat(memoryDB.getNewlyAddedMemory(category))
+        memory = memory.concat(memoryDB.getMemory(pageNo, pageSize, category, false))
+        
         return memory.map(m => {
             let { qPath, aPath, sPath } = getContentPath(m.id, m.type)
             let lastDay = m.time == 0 ? undefined : getDaysAgo(m.time)
@@ -256,7 +252,7 @@ let mainView = new MainView(
 )
 
 let msvCallBack = {
-    inputCategory: MainView.inputCategory, 
+    inputCategory: MainView.inputCategory,
     addCategory: text => {
         if (text == "全部") return false
         else return memoryDB.addCategory(text)

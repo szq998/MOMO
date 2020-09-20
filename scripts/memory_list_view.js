@@ -162,8 +162,8 @@ class MemoryListView {
             }
         ]
     }
- 
-    makeTemplate(){
+
+    makeTemplate() {
         return {
             props: { bgcolor: $color("secondarySurface") },
             views: [
@@ -277,7 +277,6 @@ class MemoryListView {
         if (selectedIndex == allCtgy.length - 1) {
             // add new category
             let newCtgy = await this.callBack.inputCategory()
-            console.log("new")
             if (newCtgy) {
                 if (!this.callBack.addCategory(newCtgy)) {
                     $ui.warning("添加新类别失败，可能与已有类别名重复")
@@ -286,21 +285,23 @@ class MemoryListView {
                     $ui.success("修改成功")
                     this.callBack.changeCategoryById(data.id, newCtgy)
                     this.callBack.reloadCategory()
-                    // this.callBack.switchToCategory(newCtgy)
+                    let currListCtgy = this.callBack.getCurrentCategory()
+                    if (currListCtgy) sender.delete(indexPath)
                 }
             }
         } else {
             let targetCtgy = allCtgy[selectedIndex]
             // change to target category
             this.callBack.changeCategoryById(data.id, targetCtgy)
+            let currListCtgy = this.callBack.getCurrentCategory()
+            if (currListCtgy) sender.delete(indexPath)
         }
-        let currListCtgy = this.callBack.getCurrentCategory()
-        if (currListCtgy) sender.delete(indexPath)
+        
 
     }
 
     changeContent(sender, indexPath, data) {
-        this.callBack.changeContentById(data.id).then( newContentInfo =>{
+        this.callBack.changeContentById(data.id).then(newContentInfo => {
             if (data.contentInfo.category == newContentInfo.category) {
                 // category not changed
                 data.contentInfo = newContentInfo
@@ -312,7 +313,7 @@ class MemoryListView {
             } else {
                 // category also changed
                 let currCtgy = this.callBack.getCurrentCategory()
-                if (currCtgy!= null) sender.delete(indexPath)
+                if (currCtgy != null) sender.delete(indexPath)
                 this.callBack.reloadCategory()
             }
         }) // Promise.then
