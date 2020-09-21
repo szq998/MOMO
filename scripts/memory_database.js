@@ -204,19 +204,18 @@ class MemoryDatabase {
     getMostForgetableMemorySnapshots(num, category = null) {
         let sql = "SELECT id, type, description, degree FROM Memory WHERE time=? "
         let args = [NEWLY_ADDED_TIME]
+        let ctgyID
         if (category) {
+            ctgyID = this.getCategoryIdByName(category)
             sql += " AND category=? "
-            args.push(this.getCategoryIdByName(category))
+            args.push(ctgyID)
         }
         sql += " LIMIT ?"
         args.push(num)
 
         let snapshots = []
         this.db.query(
-            {
-                sql: sql,
-                args: args
-            },
+            { sql: sql, args: args },
             rs => {
                 while (rs.next()) {
                     snapshots.push(rs.values)
@@ -226,15 +225,21 @@ class MemoryDatabase {
 
         // query other memory
         let num_remain = num - snapshots.length
+        if (!num_remain) return snapshots
+
+        sql = "SELECT id, type, description, degree FROM Memory WHERE time!=? "
+        args = [NEWLY_ADDED_TIME]
+        if (category) {
+            sql += " AND category=? "
+            args.push(ctgyID)
+        }
+
+        sql += "ORDER BY remembered ASC, degree ASC, time ASC LIMIT ?"
+        args.push(num_remain)
+    
+        
         this.db.query(
-            {
-                sql:
-                    "SELECT id, type, description, degree FROM Memory \
-                    WHERE time!=? \
-                    ORDER BY remembered ASC, degree ASC, time ASC \
-                    LIMIT ?",
-                args: [NEWLY_ADDED_TIME, num_remain]
-            },
+            { sql: sql, args: args },
             rs => {
                 while (rs.next()) {
                     snapshots.push(rs.values)
