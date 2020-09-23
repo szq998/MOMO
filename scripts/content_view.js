@@ -1,6 +1,6 @@
 const ContentType = {
-    image: 0,
-    markdown: 1
+    markdown: 0,
+    image: 1,
 }
 
 class ContentView {
@@ -16,18 +16,9 @@ class ContentView {
         this.content = null
         this.contentType
 
-        this.placeholderViewId = "placeholder_of_" + id
         this.imageViewId = "image_of_" + id
         this.markdownViewId = "markdown_of_" + id
 
-        let placeholderView = {
-            type: "image",
-            props: {
-                id: this.placeholderViewId,
-                contentMode: $contentMode.scaleAspectFit
-            },
-            layout: $layout.fill
-        }
         let imageView = {
             type: "image",
             props: {
@@ -50,7 +41,7 @@ class ContentView {
         this.toRender = {
             type: "view",
             props: this.props,
-            views: [placeholderView, imageView, markdownView],
+            views: [/*placeholderView, */imageView, markdownView],
             events: this.events
         } // toRender
 
@@ -88,12 +79,22 @@ class ContentView {
     }
 
     changeType(contentType) {
-        if (contentType == ContentType.image) {
+        if (contentType == ContentType.image)
             this.contentType = contentType
+        else if (contentType == ContentType.markdown)
+            this.contentType = contentType
+        else {
+            console.error("Error: unsupported content type.")
+            return false
+        }
+        return true
+    }
+
+    hideByType() {
+        if (this.contentType == ContentType.image) {
             $(this.markdownViewId).hidden = true
             $(this.imageViewId).hidden = false
-        } else if (contentType == ContentType.markdown) {
-            this.contentType = contentType
+        } else if (this.contentType == ContentType.markdown) {
             $(this.markdownViewId).hidden = false
             $(this.imageViewId).hidden = true
         } else {
@@ -103,40 +104,19 @@ class ContentView {
         return true
     }
 
-    showNoContent(contentType) {
-        if ($(this.id)) {
-            if (
-                this.changeType(contentType) &&
-                this.contentType == ContentType.image
-            ) {
-                this.content = null
-
-                $(this.imageViewId).hidden = true
-                $(this.placeholderViewId).hidden = false
-                $(this.placeholderViewId).image = $image("photo")
-            } else if (
-                this.changeType(contentType) &&
-                this.contentType == ContentType.markdown
-            ) {
-                this.content = null
-
-                $(this.markdownViewId).hidden = true
-                $(this.placeholderViewId).hidden = false
-                $(this.placeholderViewId).image = $image("doc.richtext")
-            } else return false
-        } else {
+    changeContent(contentType, content) {
+        if (!$(this.id)) {
             console.error("Error: this method must be called after render.")
             return false
         }
-        return true
-    }
 
-    changeContent(contentType, content) {
-        if ($(this.id)) {
-            if (
-                this.changeType(contentType) &&
-                this.contentType == ContentType.image
-            ) {
+        if (!content) {
+            console.error("Error: no content.");
+            return false
+        }
+
+        if (this.changeType(contentType) && this.hideByType())
+            if (this.contentType == ContentType.image) {
                 if (typeof content != "object") {
                     console.error("Error: content should be image.")
                     return false
@@ -150,26 +130,21 @@ class ContentView {
                     currSize.height * scale
                 )
                 let resizedImage = $imagekit.scaleAspectFill(content, realSize)
-                $(this.placeholderViewId).hidden = true
                 $(this.imageViewId).image = resizedImage
-            } else if (
-                this.changeType(contentType) &&
-                this.contentType == ContentType.markdown
-            ) {
+                return true
+            } else if (this.contentType == ContentType.markdown) {
                 if (typeof content != "string") {
                     console.error("Error: content should be markdown.")
                     return false
                 }
-
                 this.content = content
-                $(this.placeholderViewId).hidden = true
                 $(this.markdownViewId).content = content
-            } else return false
-        } else {
-            console.error("Error: this method must be called after render.")
-            return false
-        }
-        return true
+                return true
+            } else {
+                console.error("Error: unsupported content type.")
+                return false
+            }
+        return false
     } // changeContent
 
     quickLook() {
