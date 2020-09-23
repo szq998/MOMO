@@ -5,8 +5,8 @@ const SNAPSHOT_INSET = 5
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
 const ContentType = {
-    image: 0,
-    markdown: 1
+    markdown: 0,
+    image: 1,
 }
 
 class MemoryListView {
@@ -51,8 +51,8 @@ class MemoryListView {
                 }, // didReachBottom
                 didSelect: (sender, indexPath, data) => {
                     this.quickLook(
-                        data.contentInfo.type,
-                        data.contentInfo.qPath
+                        (data.memInfo.type >> 0) & 1,
+                        data.memInfo.qPath
                     )
                 } // didSelected
             }, // events
@@ -95,8 +95,8 @@ class MemoryListView {
                     destructive: true,
                     handler: (sender, indexPath, data) => {
                         this.quickLook(
-                            data.contentInfo.type,
-                            data.contentInfo.aPath
+                            (data.memInfo.type >> 1) & 1,
+                            data.memInfo.aPath
                         )
                     }
                 }
@@ -251,10 +251,10 @@ class MemoryListView {
     }
 
     async changeDescription(sender, indexPath, data) {
-        let desc = await this.callBack.inputDescription(data.contentInfo.desc)
+        let desc = await this.callBack.inputDescription(data.memInfo.desc)
         if (desc) {
             let newData = data
-            newData.contentInfo.desc = desc
+            newData.memInfo.desc = desc
             newData.memory_desc.text = desc
             this.data[indexPath.row] = newData
             this.callBack.changeDescriptionById(data.id, desc)
@@ -267,7 +267,7 @@ class MemoryListView {
     }
 
     async changeCategory(sender, indexPath, data) {
-        let oldCtgy = data.contentInfo.category
+        let oldCtgy = data.memInfo.category
         let allCtgy = this.callBack.getAllCategories()
         let index = allCtgy.indexOf(oldCtgy)
         allCtgy.unshift(allCtgy.splice(index, 1)[0])
@@ -313,12 +313,12 @@ class MemoryListView {
     }
 
     changeContent(sender, indexPath, data) {
-        this.callBack.changeContentById(data.id).then(newContentInfo => {
-            if (data.contentInfo.category == newContentInfo.category) {
+        this.callBack.changeContentById(data.id).then(newMemInfo => {
+            if (data.memInfo.category == newMemInfo.category) {
                 // category not changed
-                data.contentInfo = newContentInfo
-                data.memory_desc.text = newContentInfo.desc
-                data.snapshot.src = newContentInfo.sPath
+                data.memInfo = newMemInfo
+                data.memory_desc.text = newMemInfo.desc
+                data.snapshot.src = newMemInfo.sPath
 
                 this.data[indexPath.row] = data
                 sender.data = this.data
@@ -341,7 +341,7 @@ class MemoryListView {
     categoryRenamed(oldName, newName) {
         if (this.callBack.getCurrentCategory() == oldName) {
             for (const i in this.data) {
-                this.data[i].contentInfo.category = newName
+                this.data[i].memInfo.category = newName
             }
         }
 
@@ -387,14 +387,14 @@ class MemoryListView {
             newData.push({
                 // for saving data
                 id: mem.id,
-                contentInfo: mem.contentInfo,
+                memInfo: mem.memInfo,
 
                 // for template
                 snapshot: {
-                    src: mem.contentInfo.sPath
+                    src: mem.memInfo.sPath
                 },
                 memory_desc: {
-                    text: mem.contentInfo.desc
+                    text: mem.memInfo.desc
                 },
                 degree_indicator: {
                     bgcolor: DEGREE_COLORS[mem.degree]
@@ -407,12 +407,12 @@ class MemoryListView {
         return newData
     } // loadNextPage
 
-    quickLook(type, path) {
-        if (type == ContentType.image) {
+    quickLook(contentType, path) {
+        if (contentType == ContentType.image) {
             $quicklook.open({
                 url: "file://" + $file.absolutePath(path)
             })
-        } else if (type == ContentType.markdown) {
+        } else if (contentType == ContentType.markdown) {
             let md = $file.read(path).string
             let html = $text.markdownToHtml(md)
             $quicklook.open({ html: html })

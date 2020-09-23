@@ -444,7 +444,7 @@ class MemoryDatabase {
         })
     }
 
-    updateContentTypeById(id, newType) {
+    updateTypeById(id, newType) {
         this.db.update({
             sql: "UPDATE Memory SET type=? WHERE id=?",
             args: [newType, id]

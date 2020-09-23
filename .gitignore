@@ -1,3 +1,4 @@
 assets/
 .DS_Store
 .output/MOMO.box
+.output/MOMO_debug.box
