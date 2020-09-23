@@ -44,7 +44,7 @@ function getContent(id, type) {
     }
 }
 
-function saveContent(id, content) { 
+function saveContent(id, content) {
     let cDir = getContentDir(id)
     $file.mkdir(cDir)
     let { question, answer, snapshot, type } = content
@@ -72,7 +72,7 @@ function getRememberOrForgetCallback(memoryModel, rOrF) {
         $ui.title = currDesc ? currDesc : $ui.title
 
         let currId = memoryModel.getCurrentId()
-        let currType = memoryModel.getCurrentType() 
+        let currType = memoryModel.getCurrentType()
         if (typeof currId == "undefined") return undefined
         else {
             let content = getContent(currId, currType)
@@ -250,7 +250,7 @@ let memorySettingView = new MemorySettingView(
 function startMemory() {
     if (memoryDB.getCount() > 0) {
         // cache out
-        let lastNum = $cache.get("using") ? $cache.get("using").lastNum : null
+        let lastNum = $cache.get("using") && $cache.get("using").lastNum ? $cache.get("using").lastNum : null
         $input.text({
             type: $kbType.number,
             text: lastNum,
