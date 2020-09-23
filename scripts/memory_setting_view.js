@@ -135,7 +135,7 @@ class SwipableContentView extends ContentView {
     }
 
     clearContent(contentType = null) {
-        if(contentType == null && typeof this.contentType == "undefined") {
+        if (contentType == null && typeof this.contentType == "undefined") {
             $console.error("Error: content type not yet be set. Must specify content type.");
         }
 
@@ -457,8 +457,10 @@ class MemorySettingView extends PopView {
         this.addViews(viewsOfMemorySettingView)
 
         this.toRender.events["ready"] = sender => {
-            this.questionSetter.clearContent(ContentType.markdown)
-            this.answerSetter.clearContent(ContentType.markdown)
+            let lastType = $cache.get("using") && $cache.get("using").lastType ? $cache.get("using").lastType : 0
+
+            this.questionSetter.clearContent((lastType >> 0) & 1)
+            this.answerSetter.clearContent((lastType >> 1) & 1)
         }
     } // constructor
 
@@ -549,7 +551,7 @@ class MemorySettingView extends PopView {
         return (this.questionSetter.contentType << 0) | (this.answerSetter.contentType << 1)
     }
 
-    setType(type) { 
+    setType(type) {
         this.questionSetter.changeType((type >> 0) & 1)
         this.answerSetter.changeType((type >> 1) & 1)
     }
@@ -578,7 +580,7 @@ class MemorySettingView extends PopView {
         $(this.idsOfMSV.descInput).blur()
 
         let mem = {
-            type: this.getType(), 
+            type: this.getType(),
             desc: $(this.idsOfMSV.descInput).text.trim(),
             question: this.questionSetter.content,
             answer: this.answerSetter.content
@@ -623,6 +625,7 @@ class MemorySettingView extends PopView {
                 $ui.success("添加成功")
                 this.resetContent()
             }
+            $cache.set("using", { lastType: mem.type })
         } else {
             $ui.warning("描述过短或未选择图片")
         }
