@@ -15,7 +15,7 @@ class MemoryListView {
         this.callBack = callBack
         this.nextPage = 0
         this.data = []
-        
+
         this.estimatedRowHeight = SNAPSHOT_WIDTH * CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET
         this.pageSize = this.estimatePageSize()
         console.log("row height", this.estimatedRowHeight)
@@ -120,14 +120,14 @@ class MemoryListView {
 
     makeFooter() {
         return {
-            type: "view", 
+            type: "view",
             props: {
                 id: this.footerId,
                 height: 90
             },
             layout: (make, view) => {
                 make.center.equalTo(view.super)
-            }, 
+            },
             views: [
                 {
                     type: "label",

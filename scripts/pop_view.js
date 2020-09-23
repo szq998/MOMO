@@ -4,7 +4,7 @@ class PopView {
         this.innerIds = []
         this.views = []
         // if(views) this.addViews(views)
-        
+
         this.blurId = "blur_of_" + id
         this.innerViewId = "inner_view_of_" + id
         this.closeId = "close_indicator_of_" + id
@@ -64,9 +64,9 @@ class PopView {
             layout: $layout.fill,
             views: [blur, closeLabel, innerView],
             events: {
-//                tapped: sender => {
-//                    this.disappear()
-//                },
+                //                tapped: sender => {
+                //                    this.disappear()
+                //                },
                 touchesBegan: (sender, location) => {
                     let target = $(this.innerViewId)
 
