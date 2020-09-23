@@ -45,7 +45,7 @@ class MemoryModel {
         mSnapshots.forEach((item, index) => {
             memoryItems[index] = {
                 id: item.id,
-                contentType: item.type,
+                type: item.type,
                 description: item.description,
                 degree: item.degree,
 
@@ -115,8 +115,8 @@ class MemoryModel {
         return this.currLItem ? this.currLItem.data.id : undefined
     }
 
-    getCurrentContentType() {
-        return this.currLItem ? this.currLItem.data.contentType : undefined
+    getCurrentType() {
+        return this.currLItem ? this.currLItem.data.type : undefined
     }
 
     getCurrentDescription() {
