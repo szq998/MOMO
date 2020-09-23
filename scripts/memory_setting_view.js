@@ -2,15 +2,170 @@ let PopView = require("./pop_view.js")
 let ContentView = require("./content_view.js")
 
 const ContentType = {
-    image: 0,
-    markdown: 1
+    markdown: 0,
+    image: 1
 }
 
+const SWIPE_THRESHOLD = 60
 const MIN_DESC_LEN = 5
 const CONTENT_WIDTH = 200
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
-class ContentSettingView extends ContentView {
+class SwipableContentView extends ContentView {
+    constructor(id) {
+        super(id)
+        this.placeholderViewId = "placeholder_of_" + id
+        this.imagePlaceholerID = "image_placeholder_of_" + id
+        this.markdownPlaceholderID = "markdown_placeholder_of_" + id
+
+        this.imageTypeLayout = (make, view) => {
+            make.centerY.equalTo(view.super)
+            make.height.equalTo(view.super)
+            make.width.equalTo(view.super).multipliedBy(2)
+
+            make.centerX.equalTo(view.super.right)
+        }
+        this.markdownTypeLayout = (make, view) => {
+            make.centerY.equalTo(view.super)
+            make.height.equalTo(view.super)
+            make.width.equalTo(view.super).multipliedBy(2)
+
+            make.centerX.equalTo(view.super.left)
+        }
+
+        let placeholderView = {
+            type: "view",
+            props: { id: this.placeholderViewId },
+            views: [
+                {
+                    type: "image",
+                    props: {
+                        id: this.imagePlaceholerID,
+                        contentMode: $contentMode.scaleAspectFit,
+                        symbol: "photo"
+                    },
+                    layout: (make, view) => {
+                        make.left.top.bottom.equalTo(view.super)
+                        make.width.equalTo(view.super).dividedBy(2)
+                    }
+                },
+                {
+                    type: "image",
+                    props: {
+                        id: this.markdownPlaceholderID,
+                        contentMode: $contentMode.scaleAspectFit,
+                        symbol: "doc.richtext"
+                    },
+                    layout: (make, view) => {
+                        make.right.top.bottom.equalTo(view.super)
+                        make.width.equalTo(view.super).dividedBy(2)
+                    }
+                }
+            ],
+        }
+
+        this.setEvents("touchesBegan", (sender, location) => {
+            if ($(this.placeholderViewId).hidden) return
+
+            sender.info = {
+                whereTouchBegan: location.x,
+                initialPos: $(this.placeholderViewId).frame.x,
+                needTaptic: true
+            }
+        })
+        this.setEvents("touchesMoved", (sender, location) => {
+            if ($(this.placeholderViewId).hidden) return
+
+            let offset = location.x - sender.info.whereTouchBegan
+            if (this.contentType == ContentType.image && offset > 0) return
+            if (this.contentType == ContentType.markdown && offset < 0) return
+
+            if (Math.abs(offset) > SWIPE_THRESHOLD && sender.info.needTaptic) {
+                let newInfo = sender.info
+                newInfo.needTaptic = false
+                sender.info = newInfo
+                $device.taptic(2)
+            }
+            if (Math.abs(offset) < SWIPE_THRESHOLD) {
+                let newInfo = sender.info
+                newInfo.needTaptic = true
+                sender.info = newInfo
+            }
+
+            let frame = $(this.placeholderViewId).frame
+            $(this.placeholderViewId).frame = $rect(
+                sender.info.initialPos + offset,
+                frame.y,
+                frame.width,
+                frame.height
+            )
+        })
+        this.setEvents("touchesEnded", (sender, location) => {
+            if ($(this.placeholderViewId).hidden) return
+
+            let offset = location.x - sender.info.whereTouchBegan
+            if (Math.abs(offset) < SWIPE_THRESHOLD || this.contentType == ContentType.image && offset > 0 || this.contentType == ContentType.markdown && offset < 0) {
+                // sender.userInteractionEnabled = false
+                $ui.animate({
+                    damping: 0.6,
+                    animation: () => {
+                        let frame = $(this.placeholderViewId).frame
+                        $(this.placeholderViewId).frame = $rect(
+                            sender.info.initialPos,
+                            frame.y,
+                            frame.width,
+                            frame.height
+                        )
+                    }, // animation
+                    // completion: () => { sender.userInteractionEnabled = true }
+                }) // $ui.animate
+            } else if (Math.abs(offset) > SWIPE_THRESHOLD) {
+                let targetType = this.contentType == ContentType.image ? ContentType.markdown : ContentType.image
+                // sender.userInteractionEnabled = false
+                $ui.animate({
+                    damping: 0.6,
+                    animation: () => {
+                        this.changeType(targetType)
+                    },
+                    // completion: () => { sender.userInteractionEnabled = true }
+                }) // $ui.animate
+            }
+        })
+        this.toRender.views.push(placeholderView)
+    }
+
+    clearContent(contentType = null) {
+        if(contentType == null && typeof this.contentType == "undefined") {
+            $console.error("Error: content type not yet be set. Must specify content type.");
+        }
+
+        if (contentType == null ? true : this.changeType(contentType)) {
+            this.content = null
+            $(this.placeholderViewId).hidden = false
+            $(this.imageViewId).hidden = true
+            $(this.markdownViewId).hidden = true
+            return true
+        } else return false
+    }
+
+    changeContent(contentType, content) {
+        if (super.changeContent(contentType, content)) {
+            $(this.placeholderViewId).hidden = true
+            return true
+        } else return false
+    }
+
+    changeType(contentType) {
+        if (super.changeType(contentType)) {
+            if (this.contentType == ContentType.image) $(this.placeholderViewId).remakeLayout(this.imageTypeLayout)
+            else if (this.contentType == ContentType.markdown) $(this.placeholderViewId).remakeLayout(this.markdownTypeLayout)
+            $(this.placeholderViewId).relayout()
+            return true
+        } else return false
+    }
+} // class
+
+class ContentSettingView extends SwipableContentView {
     constructor(id) {
         super(id)
         this.setProps("cornerRadius", 10)
@@ -39,7 +194,7 @@ class ContentSettingView extends ContentView {
                     destructive: true,
                     handler: sender => {
                         if (!this.content) $ui.toast("当前无内容")
-                        else this.showNoContent(this.contentType)
+                        else this.clearContent()
                     }
                 }
             ]
@@ -47,11 +202,11 @@ class ContentSettingView extends ContentView {
     }
 
     contentSettingHandler(sender) {
-        if (this.contentType == ContentType.image) {
+        if (this.contentType == ContentType.image)
             this.imageSettingHandler()
-        } else if (this.contentType == ContentType.markdown) {
+        else if (this.contentType == ContentType.markdown)
             this.markdownSettingHandler(sender)
-        } else console.error("Error: unsupported content type.")
+        else console.error("Error: unsupported content type.")
     } // contentSettingHaandler
 
     imageSettingHandler() {
@@ -79,12 +234,6 @@ class ContentSettingView extends ContentView {
 
     markdownSettingHandler(sender) {
         let inputId = "markdown_input_of_" + this.id
-        let finishHandler = () => {
-            popoverInput.dismiss()
-            let text = $(inputId).text
-            if (text) this.changeContent(ContentType.markdown, text)
-            else this.showNoContent(ContentType.markdown, text)
-        }
 
         const popoverInput = $ui.popover({
             sourceView: sender,
@@ -100,18 +249,20 @@ class ContentSettingView extends ContentView {
                         accessoryView: this.makeInputAcceView(
                             inputId,
                             "输入markdown",
-                            finishHandler
+                            () => {
+                                popoverInput.dismiss()
+                            }
                         )
                     },
                     layout: $layout.fill,
-                    events: {
-                        ready: sender => {
-                            sender.focus()
-                        }
-                    }
+                    events: { ready: sender => { sender.focus() } }
                 }
             ],
-            dismissed: finishHandler
+            dismissed: () => {
+                let text = $(inputId).text
+                if (text) this.changeContent(ContentType.markdown, text)
+                else this.clearContent(ContentType.markdown, text)
+            }
         })
     }
 
@@ -163,7 +314,7 @@ class ContentSettingView extends ContentView {
                     },
                     events: {
                         tapped: sender => {
-                            $(inputViewId).blur()
+                            // $(inputViewId).blur()
                             finishHandler()
                         }
                     }
@@ -306,8 +457,8 @@ class MemorySettingView extends PopView {
         this.addViews(viewsOfMemorySettingView)
 
         this.toRender.events["ready"] = sender => {
-            this.questionSetter.showNoContent(this.getContentType())
-            this.answerSetter.showNoContent(this.getContentType())
+            this.questionSetter.clearContent(ContentType.markdown)
+            this.answerSetter.clearContent(ContentType.markdown)
         }
     } // constructor
 
@@ -394,23 +545,13 @@ class MemorySettingView extends PopView {
         } // return
     } // makeInputAcceView
 
-    getContentType() {
-        if ($(this.id)) {
-            let index = $(this.idsOfMSV.contentTypeSwitch).index
-            if (index == 0) return ContentType.image
-            else if (index == 1) return ContentType.markdown
-            else console.error("Error: unsupported content type.")
-        } else console.error("Error: this method must be called after render.")
+    getType() {
+        return (this.questionSetter.contentType << 0) | (this.answerSetter.contentType << 1)
     }
 
-    setContentType(type) {
-        if ($(this.id)) {
-            if (type == ContentType.image) {
-                $(this.idsOfMSV.contentTypeSwitch).index = 0
-            } else if (type == ContentType.markdown) {
-                $(this.idsOfMSV.contentTypeSwitch).index = 1
-            } else console.error("Error: unsupported content type.")
-        } else console.error("Error: this method must be called after render.")
+    setType(type) { 
+        this.questionSetter.changeType((type >> 0) & 1)
+        this.answerSetter.changeType((type >> 1) & 1)
     }
 
     setCategory(category, atTail = false) {
@@ -423,11 +564,11 @@ class MemorySettingView extends PopView {
     }
 
     generateSnapshot() {
-        let type = this.getContentType()
+        let qContentType = this.getType() & 1
         let snapshot
-        if (type == ContentType.image)
+        if (qContentType == ContentType.image)
             snapshot = $(this.questionSetter.imageViewId).snapshot
-        else if (type == ContentType.markdown)
+        else if (qContentType == ContentType.markdown)
             snapshot = $(this.questionSetter.markdownViewId).snapshot
         else console.error("Error: unsupported content type.")
         return snapshot
@@ -436,16 +577,16 @@ class MemorySettingView extends PopView {
     async finishHandler() {
         $(this.idsOfMSV.descInput).blur()
 
-        let content = {
-            type: this.getContentType(),
+        let mem = {
+            type: this.getType(), 
             desc: $(this.idsOfMSV.descInput).text.trim(),
             question: this.questionSetter.content,
             answer: this.answerSetter.content
         }
         if (
-            content.desc.length >= MIN_DESC_LEN &&
-            content.question &&
-            content.answer
+            mem.desc.length >= MIN_DESC_LEN &&
+            mem.question &&
+            mem.answer
         ) {
             // decide category
             let index = $(this.idsOfMSV.categoryPicker).selectedRows[0]
@@ -459,15 +600,15 @@ class MemorySettingView extends PopView {
                     return
                 }
 
-                content.category = newCtgy
+                mem.category = newCtgy
                 this.setCategory(newCtgy, true)
-            } else content.category = cpItems[index]
+            } else mem.category = cpItems[index]
 
             // generate snapshot
-            content.snapshot = this.generateSnapshot()
+            mem.snapshot = this.generateSnapshot()
 
             if (this.editingFinish) {
-                this.callBack.modify(this.modifyingId, content)
+                this.callBack.modify(this.modifyingId, mem)
 
                 this.editingFinish()
                 this.editingFinish = undefined
@@ -475,9 +616,9 @@ class MemorySettingView extends PopView {
                 $ui.success("修改成功")
                 this.disappear()
             } else {
-                this.callBack.add(content)
+                this.callBack.add(mem)
 
-                this.addingFinish(content.category)
+                this.addingFinish(mem.category)
 
                 $ui.success("添加成功")
                 this.resetContent()
@@ -490,8 +631,8 @@ class MemorySettingView extends PopView {
     resetContent() {
         $(this.idsOfMSV.descInput).text = ""
 
-        this.questionSetter.showNoContent(this.getContentType())
-        this.answerSetter.showNoContent(this.getContentType())
+        this.questionSetter.clearContent()
+        this.answerSetter.clearContent()
     }
 
     addMemory() {
@@ -502,16 +643,16 @@ class MemorySettingView extends PopView {
         })
     }
 
-    editMemory(id, oldContent) {
-        this.setContentType(oldContent.type)
-        $(this.idsOfMSV.descInput).text = oldContent.desc
-        this.questionSetter.changeContent(oldContent.type, oldContent.question)
-        this.answerSetter.changeContent(oldContent.type, oldContent.answer)
+    editMemory(id, oldMem) {
+        this.setType(oldMem.type)
+        $(this.idsOfMSV.descInput).text = oldMem.desc
+        this.questionSetter.changeContent((oldMem.type >> 0) & 1, oldMem.question)
+        this.answerSetter.changeContent((oldMem.type >> 1) & 1, oldMem.answer)
 
         this.modifyingId = id
 
         this.appear()
-        this.setCategory(oldContent.category)
+        this.setCategory(oldMem.category)
         return new Promise(resolve => {
             this.editingFinish = resolve
         })
@@ -524,14 +665,14 @@ class MemorySettingView extends PopView {
                 id: this.idsOfMSV.contentTypeSwitch,
                 bgcolor: $color("white", "clear"),
                 dynamicWidth: true,
-                items: [$image("photo"), $image("doc.richtext")]
+                items: [$image("doc.richtext"), $image("photo")]
             },
             layout: $layout.center,
             events: {
                 changed: sender => {
                     $device.taptic(2)
-                    this.questionSetter.showNoContent(this.getContentType())
-                    this.answerSetter.showNoContent(this.getContentType())
+                    this.questionSetter.clearContent(sender.index)
+                    this.answerSetter.clearContent(sender.index)
                 }
             }
         }

@@ -274,16 +274,16 @@ class MemoryView {
         $(this.buttonAreaId).alpha = 0.5
     }
 
-    resetAndNext(content) {
-        if (!content) return
+    resetAndNext(mem) {
+        if (!mem) return
 
         this.disableButtonArea()
         this.revealed = false
 
-        let { type, question, answer } = content
+        let { type, question, answer } = mem
         this.questionView.reset()
-        this.questionView.changeContent(type, question)
-        this.answerView.resetAndChangeContent(type, answer)
+        this.questionView.changeContent((type >> 0) & 1, question)
+        this.answerView.resetAndChangeContent((type >> 1) & 1, answer)
     }
 
     revealAnswer() {

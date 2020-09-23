@@ -10,15 +10,9 @@ $app.listen({
     }
 })
 
-const ContentType = {
-    image: 0,
-    markdown: 1
-}
-
 let MemoryDatabase = require("./scripts/memory_database.js")
 let MemoryModel = require("./scripts/memory_model.js")
 let MemoryView = require("./scripts/memory_view.js")
-// let MemoryListView = require("./scripts/memory_list_view.js")
 let MainView = require("./scripts/main_view.js")
 let MemorySettingView = require("./scripts/memory_setting_view.js")
 
@@ -34,66 +28,38 @@ function getContentDir(id) {
 
 function getContentPath(id, type) {
     let cDir = getContentDir(id)
-    let sPath = cDir + "/s.png"
-    if (type == ContentType.image) {
-        return {
-            qPath: cDir + "/q.jpg",
-            aPath: cDir + "/a.jpg",
-            sPath: sPath
-        }
-    } else if (type == ContentType.markdown) {
-        return {
-            qPath: cDir + "/q.md",
-            aPath: cDir + "/a.md",
-            sPath: sPath
-        }
-    } else console.error("Error: unsupported content type.")
+    return {
+        qPath: cDir + "/q." + ((type >> 0) & 1 ? "jpg" : "md"),
+        aPath: cDir + "/a." + ((type >> 1) & 1 ? "jpg" : "md"),
+        sPath: cDir + "/s.png"
+    }
 }
 
 function getContent(id, type) {
     let { qPath, aPath, sPath } = getContentPath(id, type)
-    if (type == ContentType.image) {
-        return {
-            question: $image(qPath),
-            answer: $image(aPath),
-            snapshot: $image(sPath)
-        }
-    } else if (type == ContentType.markdown) {
-        return {
-            question: $file.read(qPath).string,
-            answer: $file.read(aPath).string,
-            snapshot: $image(sPath)
-        }
-    } else console.error("Error: unsupported content type.")
+    return {
+        question: (type >> 0) & 1 ? $image(qPath) : $file.read(qPath).string,
+        answer: (type >> 1) & 1 ? $image(aPath) : $file.read(aPath).string,
+        snapshot: $image(sPath)
+    }
 }
 
-function saveContent(id, content) {
+function saveContent(id, content) { 
     let cDir = getContentDir(id)
     $file.mkdir(cDir)
-
-    let { question, answer, snapshot } = content
-    let qData, aData, sData
-    sData = snapshot.png
-    if (content.type == ContentType.image) {
-        qData = question.jpg(1)
-        aData = answer.jpg(1)
-    } else if (content.type == ContentType.markdown) {
-        qData = $data({ string: question })
-        aData = $data({ string: answer })
-    } else console.error("Error: unsupported content type.")
-
-    let { qPath, aPath, sPath } = getContentPath(id, content.type)
+    let { question, answer, snapshot, type } = content
+    let { sPath, qPath, aPath } = getContentPath(id, type)
     $file.write({
-        data: qData,
+        data: snapshot.png,
+        path: sPath
+    })
+    $file.write({
+        data: (type >> 0) & 1 ? question.jpg(1) : $data({ string: question }),
         path: qPath
     })
     $file.write({
-        data: aData,
+        data: (type >> 1) & 1 ? answer.jpg(1) : $data({ string: answer }),
         path: aPath
-    })
-    $file.write({
-        data: sData,
-        path: sPath
     })
 }
 
@@ -106,7 +72,7 @@ function getRememberOrForgetCallback(memoryModel, rOrF) {
         $ui.title = currDesc ? currDesc : $ui.title
 
         let currId = memoryModel.getCurrentId()
-        let currType = memoryModel.getCurrentContentType()
+        let currType = memoryModel.getCurrentType() 
         if (typeof currId == "undefined") return undefined
         else {
             let content = getContent(currId, currType)
@@ -138,7 +104,7 @@ let mvCallBack = {
     ready: () => {
         $ui.title = memoryModel.getCurrentDescription()
         let currId = memoryModel.getCurrentId()
-        let currType = memoryModel.getCurrentContentType()
+        let currType = memoryModel.getCurrentType()
         let content = getContent(currId, currType)
 
         content.type = currType
@@ -217,7 +183,7 @@ let mavCallBack = {
         let memory = []
         if (pageNo == 0) memory = memory.concat(memoryDB.getNewlyAddedMemory(category))
         memory = memory.concat(memoryDB.getMemory(pageNo, pageSize, category, false))
-        
+
         return memory.map(m => {
             let { qPath, aPath, sPath } = getContentPath(m.id, m.type)
             let lastDay = m.time == 0 ? undefined : getDaysAgo(m.time)
@@ -229,7 +195,7 @@ let mavCallBack = {
             else detail += lastDay + "天前"
             detail += m.time && !m.remembered ? " 忘记" : ""
 
-            let contentInfo = {
+            let memInfo = {
                 type: m.type,
                 desc: m.description,
                 category: m.category,
@@ -239,7 +205,7 @@ let mavCallBack = {
             }
             return {
                 id: m.id,
-                contentInfo: contentInfo,
+                memInfo: memInfo,
                 degree: m.degree,
                 detailedInfo: detail
             }
@@ -260,21 +226,20 @@ let msvCallBack = {
     getAllCategories: () => {
         return memoryDB.getAllCategories(false)
     },
-    add: content => {
+    add: mem => {
         let newId = memoryDB.addMemory(
-            content.type,
-            content.desc,
-            content.category
+            mem.type,
+            mem.desc,
+            mem.category
         )
-        saveContent(newId, content)
-        // memoryListView.switchToCategory(content.category)
+        saveContent(newId, mem)
     },
-    modify: (id, content) => {
-        memoryDB.updateDescriptionById(id, content.desc)
-        memoryDB.updateContentTypeById(id, content.type)
-        memoryDB.updateCategoryById(id, content.category)
+    modify: (id, mem) => {
+        memoryDB.updateDescriptionById(id, mem.desc)
+        memoryDB.updateTypeById(id, mem.type)
+        memoryDB.updateCategoryById(id, mem.category)
 
-        saveContent(id, content)
+        saveContent(id, mem)
     }
 }
 let memorySettingView = new MemorySettingView(
