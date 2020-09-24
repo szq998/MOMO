@@ -37,7 +37,7 @@ class MemoryListView {
                 header: this.makeHeader(),
                 footer: this.makeFooter(),
                 template: this.makeTemplate(),
-                actions: this.makeActions() // actions
+                actions: this.makeActions()
             }, // props
             events: {
                 ready: sender => {
@@ -158,9 +158,8 @@ class MemoryListView {
                     $ui.menu({
                         items: ["确认删除"],
                         handler: (title, idx) => {
-                            // let deleted = this.data.splice(indexPath.row, 1)[0]
-                            // sender.data = this.data
-                            let id = sender.data[indexPath.row].id
+                            let deleted = this.data.splice(indexPath.row, 1)[0]
+                            let id = deleted.id
                             sender.delete(indexPath)
                             this.callBack.deleteById(id)
                         }
