@@ -71,18 +71,21 @@ class MemoryListView {
                     items: [
                         {
                             title: "更改描述",
+                            symbol: "pencil.and.ellipsis.rectangle",
                             handler: (sender, indexPath, data) => {
                                 this.changeDescription(sender, indexPath, data)
                             }
                         },
                         {
                             title: "更改类别",
+                            symbol: "tag",
                             handler: (sender, indexPath, data) => {
                                 this.changeCategory(sender, indexPath, data)
                             } // handler
                         },
                         {
                             title: "更改内容",
+                            symbol: "photo.on.rectangle",
                             handler: (sender, indexPath, data) => {
                                 this.changeContent(sender, indexPath, data)
                             } // handler
