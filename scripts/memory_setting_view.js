@@ -14,18 +14,16 @@ const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 class SwipableContentView extends ContentView {
     constructor(id) {
         super(id)
-        this.placeholderViewId = "placeholder_of_" + id
-        this.imagePlaceholerID = "image_placeholder_of_" + id
-        this.markdownPlaceholderID = "markdown_placeholder_of_" + id
+        this.placeholderViewId = "placeholder_view_of_" + id
 
-        this.imageTypeLayout = (make, view) => {
+        this.markdownTypeLayout = (make, view) => {
             make.centerY.equalTo(view.super)
             make.height.equalTo(view.super)
             make.width.equalTo(view.super).multipliedBy(2)
 
             make.centerX.equalTo(view.super.right)
         }
-        this.markdownTypeLayout = (make, view) => {
+        this.imageTypeLayout = (make, view) => {
             make.centerY.equalTo(view.super)
             make.height.equalTo(view.super)
             make.width.equalTo(view.super).multipliedBy(2)
@@ -40,9 +38,8 @@ class SwipableContentView extends ContentView {
                 {
                     type: "image",
                     props: {
-                        id: this.imagePlaceholerID,
                         contentMode: $contentMode.scaleAspectFit,
-                        symbol: "photo"
+                        symbol: "doc.richtext"
                     },
                     layout: (make, view) => {
                         make.left.top.bottom.equalTo(view.super)
@@ -52,9 +49,8 @@ class SwipableContentView extends ContentView {
                 {
                     type: "image",
                     props: {
-                        id: this.markdownPlaceholderID,
                         contentMode: $contentMode.scaleAspectFit,
-                        symbol: "doc.richtext"
+                        symbol: "photo"
                     },
                     layout: (make, view) => {
                         make.right.top.bottom.equalTo(view.super)
@@ -77,8 +73,8 @@ class SwipableContentView extends ContentView {
             if ($(this.placeholderViewId).hidden) return
 
             let offset = location.x - sender.info.whereTouchBegan
-            if (this.contentType == ContentType.image && offset > 0) return
-            if (this.contentType == ContentType.markdown && offset < 0) return
+            if (this.contentType == ContentType.markdown && offset > 0) return
+            if (this.contentType == ContentType.image && offset < 0) return
 
             if (Math.abs(offset) > SWIPE_THRESHOLD && sender.info.needTaptic) {
                 let newInfo = sender.info
@@ -104,7 +100,7 @@ class SwipableContentView extends ContentView {
             if ($(this.placeholderViewId).hidden) return
 
             let offset = location.x - sender.info.whereTouchBegan
-            if (Math.abs(offset) < SWIPE_THRESHOLD || this.contentType == ContentType.image && offset > 0 || this.contentType == ContentType.markdown && offset < 0) {
+            if (Math.abs(offset) < SWIPE_THRESHOLD || this.contentType == ContentType.markdown && offset > 0 || this.contentType == ContentType.image && offset < 0) {
                 // sender.userInteractionEnabled = false
                 $ui.animate({
                     damping: 0.6,
