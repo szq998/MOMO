@@ -3,6 +3,8 @@ class CategoryMenuView {
         this.id = id
         this.callBack = callBack
 
+        this.ctgPopover
+
         this.toRender = {
             type: "menu",
             props: {
@@ -17,7 +19,7 @@ class CategoryMenuView {
                 },
                 longPressed: info => {
                     let sender = info.sender
-                    $ui.popover({
+                    this.ctgPopover = $ui.popover({
                         sourceView: sender,
                         views: [this.makeCategoryEditView()]
                     })
@@ -100,7 +102,7 @@ class CategoryMenuView {
         }
     } // makeCategoryEditView
 
-    async deleteCategory(sender, indexPath) {
+    async deleteCategory(sender, indexPath, ctgPop) {
         let ctgy = sender.data[indexPath.row].label.text
         let count = this.callBack.getCountByCategory(ctgy)
 
@@ -125,6 +127,8 @@ class CategoryMenuView {
             sender.delete(indexPath)
             // change main list
             this.categoryRemoved(oldCtgy, newCtgy)
+
+            if (newCtgy.length == 0) this.ctgPopover.dismiss()
         }
     }
 
@@ -200,13 +204,9 @@ class CategoryMenuView {
     } // reorderCategory
 
     categoryRemoved(oldCtgy, newCtgy, backTo = null) {
-        // let oldCtgy = $(this.categoryMenuId).items
-        // oldCtgy.unshift() // 全部
         let curr = this.getCurrentCategory()
         let currIdx = oldCtgy.indexOf(curr)
-        // let newCtgy = this.callBack.getAllCategories()
         if (oldCtgy.length == newCtgy.length) return // no deletion
-        // $(this.categoryMenuId).items = ["全部"].concat(newCtgy)
         if (!curr) { // 当前在 全部
             this.reloadCategory()
             this.callBack.doAfterCategoryChanged()
@@ -220,7 +220,6 @@ class CategoryMenuView {
                 // ctgy is deleted
                 if (currIdx > j) ++idxDec
                 else if (currIdx == j) {
-                    // this.switchToCategory(backTo)
                     this.reloadCategory()
                     this.changeToCategory(backTo)
                     this.callBack.doAfterCategoryChanged()
@@ -259,23 +258,6 @@ class CategoryMenuView {
             $(this.id).index = index
         }
     }
-
-    // switchToCategory(ctgy) {
-    //     // let newCtgy = this.callBack.getAllCategories()
-    //     // newCtgy.unshift("全部")
-    //     // this.reloadCategoryMenu()
-    //     let allCtgy = $(this.categoryMenuId).items
-    //     let index = ctgy ? allCtgy.indexOf(ctgy) : 0
-    //     if (index == -1) {
-    //         console.error("Error: category not found.")
-    //         return
-    //     }
-
-    //     // $(this.categoryMenuId).items = newCtgy
-    //     $(this.categoryMenuId).index = index
-    //     this.callBack.doAfterCategoryChanged()
-    // }
-
 } // class
 
 module.exports = CategoryMenuView
