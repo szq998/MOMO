@@ -288,30 +288,31 @@ class MemoryListView {
         // category (==0) not changed or undefined
         if (!selectedIndex) return
 
+        let targetCtgy
         if (selectedIndex == allCtgy.length - 1) {
             // add new category
-            let newCtgy = await this.callBack.inputCategory()
-            if (newCtgy) {
-                if (!this.callBack.addCategory(newCtgy)) {
-                    $ui.warning("添加新类别失败，可能与已有类别名重复")
-                    return
-                } else {
-                    $ui.success("修改成功")
-                    this.callBack.changeCategoryById(data.id, newCtgy)
-                    this.callBack.reloadCategory()
-                    let currListCtgy = this.callBack.getCurrentCategory()
-                    if (currListCtgy) sender.delete(indexPath)
-                }
+            targetCtgy = await this.callBack.inputCategory()
+            if (!targetCtgy) return
+
+            if (!this.callBack.addCategory(targetCtgy)) {
+                $ui.warning("添加新类别失败，可能与已有类别名重复")
+                return
+            } else {
+                this.callBack.changeCategoryById(data.id, targetCtgy)
+                this.callBack.reloadCategory()
             }
         } else {
-            let targetCtgy = allCtgy[selectedIndex]
+            targetCtgy = allCtgy[selectedIndex]
             // change to target category
             this.callBack.changeCategoryById(data.id, targetCtgy)
-            let currListCtgy = this.callBack.getCurrentCategory()
-            if (currListCtgy) sender.delete(indexPath)
         }
 
-
+        let currListCtgy = this.callBack.getCurrentCategory()
+        if (currListCtgy) {
+            sender.delete(indexPath)
+            this.data.splice(indexPath.row, 1)
+        } else this.data[indexPath.row].memInfo.category = targetCtgy
+        $ui.success("修改成功")
     }
 
     changeContent(sender, indexPath, data) {
@@ -326,9 +327,13 @@ class MemoryListView {
                 sender.data = this.data
             } else {
                 // category also changed
-                let currCtgy = this.callBack.getCurrentCategory()
-                if (currCtgy != null) sender.delete(indexPath)
                 this.callBack.reloadCategory()
+                
+                let currCtgy = this.callBack.getCurrentCategory()
+                if (currCtgy) {
+                    sender.delete(indexPath)
+                    this.data.splice(indexPath.row, 1)
+                } else this.data[indexPath.row].memInfo.category = targetCtgy
             }
         }) // Promise.then
     } // changeContent
@@ -348,23 +353,6 @@ class MemoryListView {
         }
 
     }
-
-    // switchToCategory(category = null) {
-    //     // let newCtgy = this.callBack.getAllCategories()
-    //     // newCtgy.unshift("全部")
-    //     this.reloadCategoryMenu()
-    //     let newCtgy = $(this.categoryMenuId).items
-    //     let index = category ? newCtgy.indexOf(category) : 0
-    //     if (index == -1) {
-    //         console.error("Error: category not found.")
-    //         return
-    //     }
-
-    //     // $(this.categoryMenuId).items = newCtgy
-    //     $(this.categoryMenuId).index = index
-    //     this.categoryChanged()
-
-    // }
 
     // methods
     getNextPageData() {
