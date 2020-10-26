@@ -461,9 +461,9 @@ class MemorySettingView extends PopView {
     } // constructor
 
     appear() {
-        let cpItems = this.callBack.getAllCategories()
-        cpItems.push("新增类别")
-        $(this.idsOfMSV.categoryPicker).items = [cpItems]
+        // let cpItems = this.callBack.getAllCategories()
+        // cpItems.push("新增类别")
+        // $(this.idsOfMSV.categoryPicker).items = [cpItems]
 
         $(this.idsOfMSV.navBarView).hidden = false
         $ui.animate({
@@ -635,6 +635,10 @@ class MemorySettingView extends PopView {
     }
 
     addMemory() {
+        let cpItems = this.callBack.getAllCategories()
+        cpItems.push("新增类别")
+        $(this.idsOfMSV.categoryPicker).items = [cpItems]
+        
         this.appear()
 
         return new Promise(resolve => {
@@ -644,6 +648,7 @@ class MemorySettingView extends PopView {
 
     editMemory(id, oldMem) {
         this.setType(oldMem.type)
+        this.setCategory(oldMem.category)
         $(this.idsOfMSV.descInput).text = oldMem.desc
         this.questionSetter.changeContent((oldMem.type >> 0) & 1, oldMem.question)
         this.answerSetter.changeContent((oldMem.type >> 1) & 1, oldMem.answer)
@@ -651,7 +656,7 @@ class MemorySettingView extends PopView {
         this.modifyingId = id
 
         this.appear()
-        this.setCategory(oldMem.category)
+
         return new Promise(resolve => {
             this.editingFinish = resolve
         })
