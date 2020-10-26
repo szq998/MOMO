@@ -400,7 +400,7 @@ class MemoryListView {
     quickLook(contentType, path) {
         if (contentType == ContentType.image) {
             $quicklook.open({
-                url: "file://" + $file.absolutePath(path)
+                url: "file://" + $file.absolutePath(path).replace(" ", "%20") // no space char
             })
         } else if (contentType == ContentType.markdown) {
             let md = $file.read(path).string
