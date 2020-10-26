@@ -333,7 +333,7 @@ class MemoryListView {
                 if (currCtgy) {
                     sender.delete(indexPath)
                     this.data.splice(indexPath.row, 1)
-                } else this.data[indexPath.row].memInfo.category = targetCtgy
+                } else this.data[indexPath.row].memInfo.category = newMemInfo.category
             }
         }) // Promise.then
     } // changeContent
