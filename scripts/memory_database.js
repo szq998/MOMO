@@ -202,6 +202,7 @@ class MemoryDatabase {
     }
 
     getMostForgetableMemorySnapshots(num, category = null) {
+        // query newly added one
         let sql = "SELECT id, type, description, degree FROM Memory WHERE time=? "
         let args = [NEWLY_ADDED_TIME]
         let ctgyID
@@ -234,7 +235,9 @@ class MemoryDatabase {
             args.push(ctgyID)
         }
 
-        sql += "ORDER BY remembered ASC, degree ASC, time ASC LIMIT ?"
+        sql += `ORDER BY CASE WHEN time < strftime('%s', 'now', '-12 hours') THEN 0 ELSE 1 END ASC,  
+                remembered ASC, degree ASC, time ASC 
+                LIMIT ?`
         args.push(num_remain)
     
         
