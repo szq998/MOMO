@@ -10,7 +10,7 @@ class CategoryMenuView {
             props: {
                 id: this.id,
                 items: ["全部"].concat(this.callBack.getAllCategories()),
-                // dynamicWidth: true   waiting for fix of jsbox
+                dynamicWidth: true
             },
             layout: layout,
             events: {
