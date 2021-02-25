@@ -466,11 +466,11 @@ class MemorySettingView extends PopView {
         // $(this.idsOfMSV.categoryPicker).items = [cpItems]
 
         $(this.idsOfMSV.navBarView).hidden = false
-        $ui.animate({
-            animation: () => {
-                $(this.idsOfMSV.navBarView).alpha = 1
-            }
-        })
+        // $ui.animate({
+        // animation: () => {
+        // $(this.idsOfMSV.navBarView).alpha = 1
+        // }
+        // })
 
         super.appear()
     }
@@ -478,14 +478,14 @@ class MemorySettingView extends PopView {
     doBeforeClose() {
         $(this.idsOfMSV.descInput).blur()
 
-        $ui.animate({
-            animation: () => {
-                $(this.idsOfMSV.navBarView).alpha = 0
-            },
-            completion: () => {
-                $(this.idsOfMSV.navBarView).hidden = true
-            }
-        })
+        // $ui.animate({
+        // animation: () => {
+        // $(this.idsOfMSV.navBarView).alpha = 0
+        // },
+        // completion: () => {
+        $(this.idsOfMSV.navBarView).hidden = true
+        // }
+        // })
     }
 
     doAfterClose() {
@@ -708,7 +708,7 @@ class MemorySettingView extends PopView {
             props: {
                 id: this.idsOfMSV.navBarView,
                 hidden: true,
-                alpha: 0
+                // alpha: 0
             },
             layout: $layout.fill,
             views: [this.getFinishButton(), this.getTypeSwitchTab()]
