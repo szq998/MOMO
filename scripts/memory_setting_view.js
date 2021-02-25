@@ -482,7 +482,7 @@ class MemorySettingView extends PopView {
             animation: () => {
                 $(this.idsOfMSV.navBarView).alpha = 0
             },
-            conpletion: () => {
+            completion: () => {
                 $(this.idsOfMSV.navBarView).hidden = true
             }
         })
@@ -638,7 +638,7 @@ class MemorySettingView extends PopView {
         let cpItems = this.callBack.getAllCategories()
         cpItems.push("新增类别")
         $(this.idsOfMSV.categoryPicker).items = [cpItems]
-        
+
         this.appear()
 
         return new Promise(resolve => {
