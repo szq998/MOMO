@@ -83,6 +83,8 @@ class AnswerView extends MovableContentView {
         }
 
         this.toRender.views.push(answerBlur)
+
+        this.markdownView.props.userInteractionEnabled = true
     } // constructor
 
     moveDown() {

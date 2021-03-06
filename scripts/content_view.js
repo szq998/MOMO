@@ -19,7 +19,7 @@ class ContentView {
         this.imageViewId = "image_of_" + id
         this.markdownViewId = "markdown_of_" + id
 
-        let imageView = {
+        this.imageView = {
             type: "image",
             props: {
                 id: this.imageViewId,
@@ -28,7 +28,7 @@ class ContentView {
             },
             layout: $layout.fill
         }
-        let markdownView = {
+        this.markdownView = {
             type: "markdown",
             props: {
                 id: this.markdownViewId,
@@ -41,7 +41,7 @@ class ContentView {
         this.toRender = {
             type: "view",
             props: this.props,
-            views: [/*placeholderView, */imageView, markdownView],
+            views: [/*placeholderView, */this.imageView, this.markdownView],
             events: this.events
         } // toRender
 
