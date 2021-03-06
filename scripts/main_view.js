@@ -110,7 +110,7 @@ class MainView {
         if (text && text.trim()) {
             let newDesc = text.trim()
             if (newDesc.length < MIN_DESC_LEN) {
-                $ui.warning("类别名称过长")
+                $ui.warning("类别名称过短")
                 return false
             } else return newDesc
         } else return false
