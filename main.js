@@ -65,7 +65,7 @@ function saveContent(id, content) {
 
 function getRememberOrForgetCallback(memoryModel, rOrF) {
     return () => {
-        if (rOrF == "r") memoryModel.remeber()
+        if (rOrF == "r") memoryModel.remember()
         else if (rOrF == "f") memoryModel.forget()
 
         let currDesc = memoryModel.getCurrentDescription()
@@ -261,7 +261,7 @@ function startMemory() {
                     // cache in
                     $cache.set("using", { lastNum: num })
                     // start model
-                    let mSnapshots = memoryDB.getMostForgetableMemorySnapshots(num, mainView.getCurrentCategory())
+                    let mSnapshots = memoryDB.getMostForgettableMemorySnapshots(num, mainView.getCurrentCategory())
                     memoryModel.start(mSnapshots)
                     // start view
                     if (mSnapshots.length > 0)

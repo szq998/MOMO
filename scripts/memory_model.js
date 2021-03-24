@@ -60,7 +60,7 @@ class MemoryModel {
         console.log("get " + memoryItems.length + " memory snapshot(s)")
     }
 
-    remeber() {
+    remember() {
         let nextLItem
         if (this.currLItem.data.isQuestioned) {
             this.currLItem.data.consecutiveRememberedTime += 1
@@ -123,7 +123,7 @@ class MemoryModel {
         return this.currLItem ? this.currLItem.data.description : undefined
     }
 
-    getCurrentdegree() {
+    getCurrentDegree() {
         return this.currLItem ? this.currLItem.data.degree : undefined
     }
 } // class

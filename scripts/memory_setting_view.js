@@ -11,7 +11,7 @@ const MIN_DESC_LEN = 5
 const CONTENT_WIDTH = 200
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
 
-class SwipableContentView extends ContentView {
+class SwipeableContentView extends ContentView {
     constructor(id) {
         super(id)
         this.placeholderViewId = "placeholder_view_of_" + id
@@ -161,7 +161,7 @@ class SwipableContentView extends ContentView {
     }
 } // class
 
-class ContentSettingView extends SwipableContentView {
+class ContentSettingView extends SwipeableContentView {
     constructor(id) {
         super(id)
         this.setProps("cornerRadius", 10)
@@ -203,7 +203,7 @@ class ContentSettingView extends SwipableContentView {
         else if (this.contentType == ContentType.markdown)
             this.markdownSettingHandler(sender)
         else console.error("Error: unsupported content type.")
-    } // contentSettingHaandler
+    } // contentSettingHandler
 
     imageSettingHandler() {
         let image
@@ -330,7 +330,7 @@ class MemorySettingView extends PopView {
         this.editingFinish
 
         this.idsOfMSV = {
-            descInputLabel: "description_nput_label_of_" + id,
+            descInputLabel: "description_input_label_of_" + id,
             descInput: "description_input_of_" + id,
             contentTypeSwitch: "content_type_switch_of_" + id,
             questionSetter: "question_setter_of_" + id,

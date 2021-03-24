@@ -96,7 +96,7 @@ class MemoryDatabase {
 
     getNewlyAddedMemory(categoryName = null) {
         let memory = []
-        // query newly add memoryif
+        // query newly add memory
         let sql =
             "SELECT Memory.*, Category.name \
              FROM Memory INNER JOIN Category \
@@ -201,7 +201,7 @@ class MemoryDatabase {
         return mem
     }
 
-    getMostForgetableMemorySnapshots(num, category = null) {
+    getMostForgettableMemorySnapshots(num, category = null) {
         // query newly added one
         let sql = "SELECT id, type, description, degree FROM Memory WHERE time=? "
         let args = [NEWLY_ADDED_TIME]
