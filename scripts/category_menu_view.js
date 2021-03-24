@@ -15,7 +15,7 @@ class CategoryMenuView {
             layout: layout,
             events: {
                 changed: (sender) => {
-                    this.callBack.doAfterCategoryChanged();
+                    this.callBack.doAfterCategorySwitched();
                 },
                 longPressed: (info) => {
                     let sender = info.sender;
@@ -179,7 +179,7 @@ class CategoryMenuView {
             this.categoryRemoved(oldCtgy, newCtgy, dstCtgy);
             // change main list
             if (this.getCurrentCategory() == dstCtgy) {
-                this.callBack.doAfterCategoryChanged();
+                this.callBack.doAfterCategorySwitched();
             }
         }
     }
@@ -223,7 +223,7 @@ class CategoryMenuView {
         if (!curr) {
             // 当前在 全部
             this.reloadCategory();
-            this.callBack.doAfterCategoryChanged();
+            this.callBack.doAfterCategorySwitched();
             return;
         }
 
@@ -235,8 +235,8 @@ class CategoryMenuView {
                 if (currIdx > j) ++idxDec;
                 else if (currIdx == j) {
                     this.reloadCategory();
-                    this.changeToCategory(backTo);
-                    this.callBack.doAfterCategoryChanged();
+                    this.switchToCategory(backTo);
+                    this.callBack.doAfterCategorySwitched();
                     return;
                 }
             } else ++i;
@@ -260,7 +260,7 @@ class CategoryMenuView {
         else return null;
     }
 
-    changeToCategory(ctgy) {
+    switchToCategory(ctgy) {
         if (!ctgy) $(this.id).index = 0;
         else {
             let allCtgy = $(this.id).items;

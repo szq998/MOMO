@@ -54,8 +54,8 @@ class MainView {
         );
 
         // set relational callback
-        callBackForCMV.doAfterCategoryChanged = () => {
-            this.memoryListView.categoryChanged();
+        callBackForCMV.doAfterCategorySwitched = () => {
+            this.memoryListView.categorySwitched();
         };
         callBackForCMV.doAfterCategoryRenamed = () => {
             this.memoryListView.categoryRenamed();
