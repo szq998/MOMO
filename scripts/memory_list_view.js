@@ -403,7 +403,7 @@ class MemoryListView {
                 url: "file://" + $file.absolutePath(path).replace(" ", "%20") // no space char
             })
         } else if (contentType == ContentType.markdown) {
-            let md = $file.read(path).string
+            let md = $file.read(path).string // TODO: async file
             let html = $text.markdownToHtml(md)
             $quicklook.open({ html: html })
         } else console.error("Error: unsupported content type.")

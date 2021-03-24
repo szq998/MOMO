@@ -38,9 +38,9 @@ function getContentPath(id, type) {
 function getContent(id, type) {
     let { qPath, aPath, sPath } = getContentPath(id, type)
     return {
-        question: (type >> 0) & 1 ? $image(qPath) : $file.read(qPath).string,
-        answer: (type >> 1) & 1 ? $image(aPath) : $file.read(aPath).string,
-        snapshot: $image(sPath)
+        question: (type >> 0) & 1 ? $image(qPath) : $file.read(qPath).string, // TODO: async file
+        answer: (type >> 1) & 1 ? $image(aPath) : $file.read(aPath).string, // TODO: async file
+        snapshot: $image(sPath) // TODO: async file
     }
 }
 
@@ -83,7 +83,7 @@ function getRememberOrForgetCallback(memoryModel, rOrF) {
 }
 
 let memoryDB
-if (!$file.exists(DB_PATH)) {
+if (!$file.exists(DB_PATH)) { // TODO: async file
     memoryDB = MemoryDatabase.createMemoryDatabase(DB_PATH)
     $file.mkdir(MEMORY_RESOURCE_PATH)
     $ui.alert("首次运行，已创建数据库")
@@ -278,43 +278,6 @@ function startMemory() {
         }) // $input.text
     } else $ui.warning("找不到记录，请添加")
 } // start memory
-
-// function addMemory() {
-//     memorySettingView.appear()
-// }
-
-// function makeFirstPageButton(text, callBack) {
-//     return {
-//         type: "button",
-//         props: {
-//             title: text
-//         },
-//         events: {
-//             tapped: callBack
-//         } // events
-//     } // returned view
-// }
-
-// let buttonArea = {
-//     type: "stack",
-//     props: {
-//         id: "button_area",
-
-//         axis: $stackViewAxis.horizontal,
-//         spacing: 20,
-//         distribution: $stackViewDistribution.fillEqually,
-//         stack: {
-//             views: [
-//                 makeFirstPageButton("开始记忆", startMemory),
-//                 makeFirstPageButton("添加记录", addMemory)
-//             ] // views
-//         } // stack
-//     }, // props
-//     layout: (make, view) => {
-//         make.height.equalTo(50)
-//         make.bottom.left.right.inset(15)
-//     } // layout
-// } // buttonArea
 
 $ui.render({
     props: {
