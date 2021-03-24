@@ -16,72 +16,6 @@ let MemoryView = require('./scripts/memory_view.js');
 let MainView = require('./scripts/main_view.js');
 let MemorySettingView = require('./scripts/memory_setting_view.js');
 
-function getDaysAgo(lts0) {
-    let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime();
-    let ts1 = new Date(new Date().toLocaleDateString()).getTime();
-    return parseInt((ts1 - ts0) / (1000 * 24 * 60 * 60));
-}
-
-function getContentDir(id) {
-    return MEMORY_RESOURCE_PATH + '/' + id;
-}
-
-function getContentPath(id, type) {
-    let cDir = getContentDir(id);
-    return {
-        qPath: cDir + '/q.' + ((type >> 0) & 1 ? 'jpg' : 'md'),
-        aPath: cDir + '/a.' + ((type >> 1) & 1 ? 'jpg' : 'md'),
-        sPath: cDir + '/s.png',
-    };
-}
-
-function getContent(id, type) {
-    let { qPath, aPath, sPath } = getContentPath(id, type);
-    return {
-        question: (type >> 0) & 1 ? $image(qPath) : $file.read(qPath).string, // TODO: async file
-        answer: (type >> 1) & 1 ? $image(aPath) : $file.read(aPath).string, // TODO: async file
-        snapshot: $image(sPath), // TODO: async file
-    };
-}
-
-function saveContent(id, content) {
-    let cDir = getContentDir(id);
-    $file.mkdir(cDir);
-    let { question, answer, snapshot, type } = content;
-    let { sPath, qPath, aPath } = getContentPath(id, type);
-    $file.write({
-        data: snapshot.png,
-        path: sPath,
-    });
-    $file.write({
-        data: (type >> 0) & 1 ? question.jpg(1) : $data({ string: question }),
-        path: qPath,
-    });
-    $file.write({
-        data: (type >> 1) & 1 ? answer.jpg(1) : $data({ string: answer }),
-        path: aPath,
-    });
-}
-
-function getRememberOrForgetCallback(memoryModel, rOrF) {
-    return () => {
-        if (rOrF == 'r') memoryModel.remember();
-        else if (rOrF == 'f') memoryModel.forget();
-
-        let currDesc = memoryModel.getCurrentDescription();
-        $ui.title = currDesc ? currDesc : $ui.title;
-
-        let currId = memoryModel.getCurrentId();
-        let currType = memoryModel.getCurrentType();
-        if (typeof currId == 'undefined') return undefined;
-        else {
-            let content = getContent(currId, currType);
-            content.type = currType;
-            return content;
-        }
-    };
-}
-
 let memoryDB;
 if (!$file.exists(DB_PATH)) {
     // TODO: async file
@@ -244,6 +178,82 @@ let memorySettingView = new MemorySettingView(
     msvCallBack
 );
 
+$ui.render({
+    props: {
+        title: '默默记点啥',
+        bgcolor: $color('#F2F1F6', 'primarySurface'),
+        titleView: memorySettingView.getNavBarView(),
+    },
+    views: [mainView.toRender, memorySettingView.toRender],
+});
+
+
+function getDaysAgo(lts0) {
+    let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime();
+    let ts1 = new Date(new Date().toLocaleDateString()).getTime();
+    return parseInt((ts1 - ts0) / (1000 * 24 * 60 * 60));
+}
+
+function getContentDir(id) {
+    return MEMORY_RESOURCE_PATH + '/' + id;
+}
+
+function getContentPath(id, type) {
+    let cDir = getContentDir(id);
+    return {
+        qPath: cDir + '/q.' + ((type >> 0) & 1 ? 'jpg' : 'md'),
+        aPath: cDir + '/a.' + ((type >> 1) & 1 ? 'jpg' : 'md'),
+        sPath: cDir + '/s.png',
+    };
+}
+
+function getContent(id, type) {
+    let { qPath, aPath, sPath } = getContentPath(id, type);
+    return {
+        question: (type >> 0) & 1 ? $image(qPath) : $file.read(qPath).string, // TODO: async file
+        answer: (type >> 1) & 1 ? $image(aPath) : $file.read(aPath).string, // TODO: async file
+        snapshot: $image(sPath), // TODO: async file
+    };
+}
+
+function saveContent(id, content) {
+    let cDir = getContentDir(id);
+    $file.mkdir(cDir);
+    let { question, answer, snapshot, type } = content;
+    let { sPath, qPath, aPath } = getContentPath(id, type);
+    $file.write({
+        data: snapshot.png,
+        path: sPath,
+    });
+    $file.write({
+        data: (type >> 0) & 1 ? question.jpg(1) : $data({ string: question }),
+        path: qPath,
+    });
+    $file.write({
+        data: (type >> 1) & 1 ? answer.jpg(1) : $data({ string: answer }),
+        path: aPath,
+    });
+}
+
+function getRememberOrForgetCallback(memoryModel, rOrF) {
+    return () => {
+        if (rOrF == 'r') memoryModel.remember();
+        else if (rOrF == 'f') memoryModel.forget();
+
+        let currDesc = memoryModel.getCurrentDescription();
+        $ui.title = currDesc ? currDesc : $ui.title;
+
+        let currId = memoryModel.getCurrentId();
+        let currType = memoryModel.getCurrentType();
+        if (typeof currId == 'undefined') return undefined;
+        else {
+            let content = getContent(currId, currType);
+            content.type = currType;
+            return content;
+        }
+    };
+}
+
 function startMemory() {
     if (memoryDB.getCount() > 0) {
         // cache out
@@ -285,12 +295,3 @@ function startMemory() {
         }); // $input.text
     } else $ui.warning('找不到记录，请添加');
 } // start memory
-
-$ui.render({
-    props: {
-        title: '默默记点啥',
-        bgcolor: $color('#F2F1F6', 'primarySurface'),
-        titleView: memorySettingView.getNavBarView(),
-    },
-    views: [mainView.toRender, memorySettingView.toRender],
-});
