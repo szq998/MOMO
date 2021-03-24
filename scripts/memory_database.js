@@ -1,12 +1,12 @@
-const NEWLY_ADDED_TIME = 0
+const NEWLY_ADDED_TIME = 0;
 
 class MemoryDatabase {
     constructor(dbPath) {
-        this.db = $sqlite.open(dbPath) // TODO: async file
+        this.db = $sqlite.open(dbPath); // TODO: async file
     }
 
     static createMemoryDatabase(dbPath) {
-        let db = $sqlite.open(dbPath) // TODO: async file
+        let db = $sqlite.open(dbPath); // TODO: async file
         db.update(
             `CREATE TABLE Memory(
             id integer primary key, 
@@ -16,119 +16,122 @@ class MemoryDatabase {
             time integer not null, 
             remembered integer not null, 
             degree integer not null)`
-        )
+        );
         db.update(
             `CREATE TABLE Category(
              id integer primary key AUTOINCREMENT, 
              name text not null, 
              corder integer not null)`
-        )
+        );
 
-        db.close()
-        return new MemoryDatabase(dbPath)
+        db.close();
+        return new MemoryDatabase(dbPath);
     }
 
     close() {
-        this.db.close()
+        this.db.close();
     }
 
     addCategory(categoryName) {
         let dup = this.db.query({
-            sql: "SELECT * FROM Category WHERE name=?",
-            args: [categoryName]
-        }).result
+            sql: 'SELECT * FROM Category WHERE name=?',
+            args: [categoryName],
+        }).result;
 
-        if (dup.next()) return false
+        if (dup.next()) return false;
 
-        let nextOrd
-        this.db.query("SELECT corder FROM Category ORDER BY corder DESC LIMIT 1", (rs, er) => {
-            if (rs) {
-                if (rs.next()) nextOrd = rs.values.corder + 1
-                else nextOrd = 0
+        let nextOrd;
+        this.db.query(
+            'SELECT corder FROM Category ORDER BY corder DESC LIMIT 1',
+            (rs, er) => {
+                if (rs) {
+                    if (rs.next()) nextOrd = rs.values.corder + 1;
+                    else nextOrd = 0;
+                }
             }
-        })
+        );
         this.db.update({
-            sql: "INSERT INTO Category values(?, ?, ?)",
-            args: [null, categoryName, nextOrd]
-        })
-        return true
+            sql: 'INSERT INTO Category values(?, ?, ?)',
+            args: [null, categoryName, nextOrd],
+        });
+        return true;
     }
 
     getAllCategories() {
-        let sql = "SELECT name FROM Category ORDER BY corder ASC "
+        let sql = 'SELECT name FROM Category ORDER BY corder ASC ';
 
-        let categories = []
+        let categories = [];
         this.db.query(sql, (rs, er) => {
             while (rs.next()) {
-                categories.push(rs.values.name)
+                categories.push(rs.values.name);
             }
-        })
-        return categories
+        });
+        return categories;
     }
 
     getCategoryNameById(categoryId) {
-        let name
+        let name;
         this.db.query(
             {
-                sql: "SELECT name FROM Category WHERE id=?",
-                args: [categoryId]
+                sql: 'SELECT name FROM Category WHERE id=?',
+                args: [categoryId],
             },
             (rs, er) => {
-                if (rs && rs.next()) name = rs.values.name
+                if (rs && rs.next()) name = rs.values.name;
             }
-        )
-        return name
+        );
+        return name;
     }
 
     getCategoryIdByName(categoryName) {
-        let id
+        let id;
         this.db.query(
             {
-                sql: "SELECT id FROM Category WHERE name=?",
-                args: [categoryName]
+                sql: 'SELECT id FROM Category WHERE name=?',
+                args: [categoryName],
             },
             (rs, er) => {
-                if (rs && rs.next()) id = rs.values.id
+                if (rs && rs.next()) id = rs.values.id;
             }
-        )
-        return id
+        );
+        return id;
     }
 
     getNewlyAddedMemory(categoryName = null) {
-        let memory = []
+        let memory = [];
         // query newly add memory
         let sql =
-            "SELECT Memory.*, Category.name \
+            'SELECT Memory.*, Category.name \
              FROM Memory INNER JOIN Category \
              ON Memory.category == Category.id \
-             WHERE time=? "
-        let args = [NEWLY_ADDED_TIME]
+             WHERE time=? ';
+        let args = [NEWLY_ADDED_TIME];
         if (categoryName) {
-            let categoryId = this.getCategoryIdByName(categoryName)
-            if (typeof categoryId != "number") {
-                console.error("Error: no such category name in database.")
-                return []
+            let categoryId = this.getCategoryIdByName(categoryName);
+            if (typeof categoryId != 'number') {
+                console.error('Error: no such category name in database.');
+                return [];
             }
 
-            sql += " AND category=?"
-            args.push(categoryId)
+            sql += ' AND category=?';
+            args.push(categoryId);
         }
 
         this.db.query(
             {
                 sql: sql,
-                args: args
+                args: args,
             },
             (rs, er) => {
                 while (rs.next()) {
-                    let values = rs.values
-                    values.category = values.name
-                    delete values.name
-                    memory.push(values)
+                    let values = rs.values;
+                    values.category = values.name;
+                    delete values.name;
+                    memory.push(values);
                 }
             }
-        )
-        return memory
+        );
+        return memory;
     }
 
     getMemory(
@@ -137,125 +140,120 @@ class MemoryDatabase {
         categoryName = null,
         isNewlyAddedIncluded = true
     ) {
-        let memory = []
+        let memory = [];
 
         let sql =
-            "SELECT Memory.*, Category.name \
+            'SELECT Memory.*, Category.name \
              FROM Memory INNER JOIN Category \
-             ON Memory.category == Category.id"
-        let args = []
+             ON Memory.category == Category.id';
+        let args = [];
         if (!isNewlyAddedIncluded) {
-            sql += " WHERE time!=? "
-            args.push(NEWLY_ADDED_TIME)
+            sql += ' WHERE time!=? ';
+            args.push(NEWLY_ADDED_TIME);
         }
         if (categoryName) {
-            let categoryId = this.getCategoryIdByName(categoryName)
-            if (typeof categoryId != "number") {
-                console.error("Error: no such category name in database.")
-                return []
+            let categoryId = this.getCategoryIdByName(categoryName);
+            if (typeof categoryId != 'number') {
+                console.error('Error: no such category name in database.');
+                return [];
             }
 
-            sql += " AND category=? "
-            args.push(categoryId)
+            sql += ' AND category=? ';
+            args.push(categoryId);
         }
 
-        sql += " ORDER BY remembered ASC, degree ASC, time ASC LIMIT ? OFFSET ?"
-        args = args.concat([pageSize, pageNo * pageSize])
+        sql +=
+            ' ORDER BY remembered ASC, degree ASC, time ASC LIMIT ? OFFSET ?';
+        args = args.concat([pageSize, pageNo * pageSize]);
 
         this.db.query(
             {
                 sql: sql,
-                args: args
+                args: args,
             },
             (rs, er) => {
                 while (rs.next()) {
-                    let values = rs.values
-                    values.category = values.name
-                    delete values.name
-                    memory.push(values)
+                    let values = rs.values;
+                    values.category = values.name;
+                    delete values.name;
+                    memory.push(values);
                 }
             }
-        ) // query
-        return memory
+        ); // query
+        return memory;
     }
 
     getMemoryById(id) {
-        let mem
+        let mem;
         this.db.query(
             {
                 sql:
-                    "SELECT Memory.*, Category.name \
+                    'SELECT Memory.*, Category.name \
                      FROM Memory INNER JOIN Category \
                      ON Memory.category == Category.id \
-                     WHERE Memory.id=?",
-                args: [id]
+                     WHERE Memory.id=?',
+                args: [id],
             },
             (rs, er) => {
                 if (rs && rs.next()) {
-                    mem = rs.values
-                    mem.category = mem.name
-                    delete mem.name
+                    mem = rs.values;
+                    mem.category = mem.name;
+                    delete mem.name;
                 }
             }
-        )
-        return mem
+        );
+        return mem;
     }
 
     getMostForgettableMemorySnapshots(num, category = null) {
         // query newly added one
-        let sql = "SELECT id, type, description, degree FROM Memory WHERE time=? "
-        let args = [NEWLY_ADDED_TIME]
-        let ctgyID
+        let sql =
+            'SELECT id, type, description, degree FROM Memory WHERE time=? ';
+        let args = [NEWLY_ADDED_TIME];
+        let ctgyID;
         if (category) {
-            ctgyID = this.getCategoryIdByName(category)
-            sql += " AND category=? "
-            args.push(ctgyID)
+            ctgyID = this.getCategoryIdByName(category);
+            sql += ' AND category=? ';
+            args.push(ctgyID);
         }
-        sql += " LIMIT ?"
-        args.push(num)
+        sql += ' LIMIT ?';
+        args.push(num);
 
-        let snapshots = []
-        this.db.query(
-            { sql: sql, args: args },
-            rs => {
-                while (rs.next()) {
-                    snapshots.push(rs.values)
-                }
+        let snapshots = [];
+        this.db.query({ sql: sql, args: args }, (rs) => {
+            while (rs.next()) {
+                snapshots.push(rs.values);
             }
-        )
+        });
 
         // query other memory
-        let num_remain = num - snapshots.length
-        if (!num_remain) return snapshots
+        let num_remain = num - snapshots.length;
+        if (!num_remain) return snapshots;
 
-        sql = "SELECT id, type, description, degree FROM Memory WHERE time!=? "
-        args = [NEWLY_ADDED_TIME]
+        sql = 'SELECT id, type, description, degree FROM Memory WHERE time!=? ';
+        args = [NEWLY_ADDED_TIME];
         if (category) {
-            sql += " AND category=? "
-            args.push(ctgyID)
+            sql += ' AND category=? ';
+            args.push(ctgyID);
         }
 
         sql += `ORDER BY CASE WHEN time < strftime('%s', 'now', '-12 hours') THEN 0 ELSE 1 END ASC,  
                 remembered ASC, degree ASC, time ASC 
-                LIMIT ?`
-        args.push(num_remain)
-    
-        
-        this.db.query(
-            { sql: sql, args: args },
-            rs => {
-                while (rs.next()) {
-                    snapshots.push(rs.values)
-                }
+                LIMIT ?`;
+        args.push(num_remain);
+
+        this.db.query({ sql: sql, args: args }, (rs) => {
+            while (rs.next()) {
+                snapshots.push(rs.values);
             }
-        ) // query
-        return snapshots
+        }); // query
+        return snapshots;
     }
 
     rememberUpdate(id) {
-        let degree = this.getDegree(id) + 1
-        if (degree < 0) degree = 0
-        else if (degree > 7) degree = 7
+        let degree = this.getDegree(id) + 1;
+        if (degree < 0) degree = 0;
+        else if (degree > 7) degree = 7;
 
         this.db.update({
             sql:
@@ -264,14 +262,14 @@ class MemoryDatabase {
                  time=strftime('%s', 'now'), \
                  degree=? \
                  WHERE id=?",
-            args: [degree, id]
-        })
+            args: [degree, id],
+        });
     }
 
     forgetUpdate(id) {
-        let degree = parseInt(this.getDegree(id) / 2)
-        if (degree < 0) degree = 0
-        else if (degree > 7) degree = 7
+        let degree = parseInt(this.getDegree(id) / 2);
+        if (degree < 0) degree = 0;
+        else if (degree > 7) degree = 7;
 
         this.db.update({
             sql:
@@ -280,65 +278,68 @@ class MemoryDatabase {
                  time=strftime('%s', 'now'), \
                  degree=? \
                  WHERE id=?",
-            args: [degree, id]
-        })
+            args: [degree, id],
+        });
     }
 
     getCount() {
-        let rs = this.db.query("SELECT count(*) FROM Memory").result
+        let rs = this.db.query('SELECT count(*) FROM Memory').result;
         if (rs) {
-            if (rs.next()) return rs.values["count(*)"]
-            else return 0
+            if (rs.next()) return rs.values['count(*)'];
+            else return 0;
         }
     }
 
     getCountByCategory(ctgy) {
-        let ctgyID = this.getCategoryIdByName(ctgy)
-        let rs = this.db.query({ sql: "SELECT count(*) FROM Memory WHERE category=?", args: [ctgyID] }).result
+        let ctgyID = this.getCategoryIdByName(ctgy);
+        let rs = this.db.query({
+            sql: 'SELECT count(*) FROM Memory WHERE category=?',
+            args: [ctgyID],
+        }).result;
         if (rs) {
-            if (rs.next()) return rs.values["count(*)"]
-            else return 0
+            if (rs.next()) return rs.values['count(*)'];
+            else return 0;
         }
     }
 
     getNextId() {
-        let lastId
-        let rs = this.db.query("SELECT id FROM Memory ORDER BY id DESC LIMIT 1")
-            .result
-        if (rs && rs.next()) lastId = rs.values.id
-        else return 0
+        let lastId;
+        let rs = this.db.query('SELECT id FROM Memory ORDER BY id DESC LIMIT 1')
+            .result;
+        if (rs && rs.next()) lastId = rs.values.id;
+        else return 0;
 
-        let count = this.getCount()
+        let count = this.getCount();
 
         if (count - 1 != lastId) {
-            rs = this.db.query("SELECT id FROM Memory ORDER BY id ASC").result
+            rs = this.db.query('SELECT id FROM Memory ORDER BY id ASC').result;
             if (rs) {
-                let ids = []
-                while (rs.next()) ids.push(rs.values.id)
-                if (ids[0] != 0) return 0
+                let ids = [];
+                while (rs.next()) ids.push(rs.values.id);
+                if (ids[0] != 0) return 0;
 
                 let low = 1,
                     high = ids.length - 1,
-                    mid
+                    mid;
                 while (low < high) {
-                    mid = parseInt((low + high) / 2)
+                    mid = parseInt((low + high) / 2);
                     if (mid == ids[mid] && mid - 1 == ids[mid - 1])
-                        low = mid + 1
+                        low = mid + 1;
                     else if (mid != ids[mid] && mid - 1 != ids[mid - 1])
-                        high = mid - 1
-                    else return mid
+                        high = mid - 1;
+                    else return mid;
                 } // while
-                return low
+                return low;
             } // if rs
-        } else return lastId + 1
+        } else return lastId + 1;
     } // getNextId
 
     addMemory(type, description, categoryName) {
-        let categoryId = this.getCategoryIdByName(categoryName)
+        let categoryId = this.getCategoryIdByName(categoryName);
 
-        let new_id = this.getNextId()
+        let new_id = this.getNextId();
         this.db.update({
-            sql: "INSERT INTO Memory values(?, ?, ?, ?, ?, ?, ?)",
+            sql: 'INSERT INTO Memory values(?, ?, ?, ?, ?, ?, ?)',
             args: [
                 new_id,
                 type,
@@ -346,128 +347,141 @@ class MemoryDatabase {
                 description,
                 NEWLY_ADDED_TIME,
                 0,
-                0
-            ]
-        })
-        return new_id
+                0,
+            ],
+        });
+        return new_id;
     } // addMemory
 
     getDegree(id) {
         let rs = this.db.query({
-            sql: "SELECT degree FROM Memory WHERE id=?",
-            args: [id]
-        }).result
-        if (rs.next()) return rs.values.degree
-        else return 0
+            sql: 'SELECT degree FROM Memory WHERE id=?',
+            args: [id],
+        }).result;
+        if (rs.next()) return rs.values.degree;
+        else return 0;
     } // getDegree
 
     deleteById(id) {
         this.db.update({
-            sql: "DELETE FROM Memory WHERE id=?",
-            args: [id]
-        })
+            sql: 'DELETE FROM Memory WHERE id=?',
+            args: [id],
+        });
     } // deleteById
 
     deleteCategory(ctgy) {
-        let ctgyID = this.getCategoryIdByName(ctgy)
-        let ord
+        let ctgyID = this.getCategoryIdByName(ctgy);
+        let ord;
         this.db.update({
-            sql: "DELETE FROM Memory WHERE category=?",
-            args: [ctgyID]
-        })
-        this.db.query({
-            sql: "SELECT corder FROM Category WHERE name=?",
-            args: [ctgy]
-        }, (rs, er) => {
-            if (rs && rs.next()) ord = rs.values.corder
-        })
+            sql: 'DELETE FROM Memory WHERE category=?',
+            args: [ctgyID],
+        });
+        this.db.query(
+            {
+                sql: 'SELECT corder FROM Category WHERE name=?',
+                args: [ctgy],
+            },
+            (rs, er) => {
+                if (rs && rs.next()) ord = rs.values.corder;
+            }
+        );
         this.db.update({
-            sql: "UPDATE Category SET corder=corder-1 WHERE corder>?",
-            args: [ord]
-        })
+            sql: 'UPDATE Category SET corder=corder-1 WHERE corder>?',
+            args: [ord],
+        });
         this.db.update({
-            sql: "DELETE FROM Category WHERE name=?",
-            args: [ctgy]
-        })
+            sql: 'DELETE FROM Category WHERE name=?',
+            args: [ctgy],
+        });
     }
 
     renameCategory(ctgy, newName) {
         let dup = this.db.query({
-            sql: "SELECT * FROM Category WHERE name=?",
-            args: [newName]
-        }).result
+            sql: 'SELECT * FROM Category WHERE name=?',
+            args: [newName],
+        }).result;
 
-        if (dup.next()) return false
+        if (dup.next()) return false;
 
         this.db.update({
-            sql: "UPDATE Category SET name=? WHERE name=?",
-            args: [newName, ctgy]
-        })
-        return true
+            sql: 'UPDATE Category SET name=? WHERE name=?',
+            args: [newName, ctgy],
+        });
+        return true;
     }
 
     mergeCategory(srcCtgy, dstCtgy) {
-        let srcCtgyID = this.getCategoryIdByName(srcCtgy)
-        let dstCtgyID = this.getCategoryIdByName(dstCtgy)
+        let srcCtgyID = this.getCategoryIdByName(srcCtgy);
+        let dstCtgyID = this.getCategoryIdByName(dstCtgy);
 
         this.db.update({
-            sql: "UPDATE Memory SET category=? WHERE category=?",
-            args: [dstCtgyID, srcCtgyID]
-        })
+            sql: 'UPDATE Memory SET category=? WHERE category=?',
+            args: [dstCtgyID, srcCtgyID],
+        });
 
-        this.deleteCategory(srcCtgy)
+        this.deleteCategory(srcCtgy);
     }
 
     reorderCategory(srcCtgy, dstCtgy) {
-        let sID = this.getCategoryIdByName(srcCtgy)
-        let sOrd, dOrd
-        this.db.query({
-            sql: "SELECT corder FROM Category WHERE name=?",
-            args: [srcCtgy]
-        }, (rs, er) => {
-            if (rs && rs.next()) sOrd = rs.values.corder
-        })
-        this.db.query({
-            sql: "SELECT corder FROM Category WHERE name=?",
-            args: [dstCtgy]
-        }, (rs, er) => {
-            if (rs && rs.next()) dOrd = rs.values.corder
-        })
-        let sql
-        if (sOrd < dOrd) sql = "UPDATE Category SET corder=corder-1 WHERE corder>? AND corder<=?"
-        else sql = "UPDATE Category SET corder=corder+1 WHERE corder<? AND corder>=?"
+        let sID = this.getCategoryIdByName(srcCtgy);
+        let sOrd, dOrd;
+        this.db.query(
+            {
+                sql: 'SELECT corder FROM Category WHERE name=?',
+                args: [srcCtgy],
+            },
+            (rs, er) => {
+                if (rs && rs.next()) sOrd = rs.values.corder;
+            }
+        );
+        this.db.query(
+            {
+                sql: 'SELECT corder FROM Category WHERE name=?',
+                args: [dstCtgy],
+            },
+            (rs, er) => {
+                if (rs && rs.next()) dOrd = rs.values.corder;
+            }
+        );
+        let sql;
+        if (sOrd < dOrd)
+            sql =
+                'UPDATE Category SET corder=corder-1 WHERE corder>? AND corder<=?';
+        else
+            sql =
+                'UPDATE Category SET corder=corder+1 WHERE corder<? AND corder>=?';
         this.db.update({
             sql: sql,
-            args: [sOrd, dOrd]
-        })
+            args: [sOrd, dOrd],
+        });
 
         this.db.update({
-            sql: "UPDATE Category SET corder=? WHERE id=?",
-            args: [dOrd, sID]
-        })
+            sql: 'UPDATE Category SET corder=? WHERE id=?',
+            args: [dOrd, sID],
+        });
     }
 
     updateTypeById(id, newType) {
         this.db.update({
-            sql: "UPDATE Memory SET type=? WHERE id=?",
-            args: [newType, id]
-        })
+            sql: 'UPDATE Memory SET type=? WHERE id=?',
+            args: [newType, id],
+        });
     }
 
     updateDescriptionById(id, newDesc) {
         this.db.update({
-            sql: "UPDATE Memory SET description=? WHERE id=?",
-            args: [newDesc, id]
-        })
+            sql: 'UPDATE Memory SET description=? WHERE id=?',
+            args: [newDesc, id],
+        });
     }
 
     updateCategoryById(id, newCategoryName) {
-        let newCategoryId = this.getCategoryIdByName(newCategoryName)
+        let newCategoryId = this.getCategoryIdByName(newCategoryName);
         this.db.update({
-            sql: "UPDATE Memory SET category=? WHERE id=?",
-            args: [newCategoryId, id]
-        })
+            sql: 'UPDATE Memory SET category=? WHERE id=?',
+            args: [newCategoryId, id],
+        });
     }
 } // class
 
-module.exports = MemoryDatabase
+module.exports = MemoryDatabase;

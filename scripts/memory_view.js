@@ -1,205 +1,205 @@
-let ContentView = require("./content_view.js")
+let ContentView = require('./content_view.js');
 
-const CONTENT_WIDTH = 400
-const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3
+const CONTENT_WIDTH = 400;
+const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3;
 
-const CLOSE_THRESHOLD = 80
+const CLOSE_THRESHOLD = 80;
 
 class MovableContentView extends ContentView {
     constructor(id) {
-        super(id)
+        super(id);
 
         this.layoutForSize = (make, view) => {
-            make.width.equalTo(CONTENT_WIDTH)
-            make.width.lessThanOrEqualTo(view.super.width).offset(-30)
+            make.width.equalTo(CONTENT_WIDTH);
+            make.width.lessThanOrEqualTo(view.super.width).offset(-30);
             make.height
                 .equalTo(view.width)
-                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO)
-        }
+                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
+        };
 
         this.initialLayout = (make, view) => {
-            this.layoutForSize(make, view)
-            make.center.equalTo(view.super)
-        }
+            this.layoutForSize(make, view);
+            make.center.equalTo(view.super);
+        };
 
-        this.setProps("cornerRadius", 10)
-        this.setProps("borderWidth", 1)
-        this.setProps("borderColor", $color("lightGray", "darkGray"))
+        this.setProps('cornerRadius', 10);
+        this.setProps('borderWidth', 1);
+        this.setProps('borderColor', $color('lightGray', 'darkGray'));
     } // constructor
 
     reset() {
         $ui.animate({
             animation: () => {
-                $(this.id).remakeLayout(this.initialLayout)
-                $(this.id).relayout()
-            }
-        })
+                $(this.id).remakeLayout(this.initialLayout);
+                $(this.id).relayout();
+            },
+        });
     } // reset
 } // class ContentView
 
 class QuestionView extends MovableContentView {
     constructor(id) {
-        super(id)
+        super(id);
 
         this.revealedLayout = (make, view) => {
-            this.layoutForSize(make, view)
+            this.layoutForSize(make, view);
 
-            make.centerX.equalTo(view.super)
-            make.bottom.equalTo(view.super.centerY).offset(-10)
-        }
+            make.centerX.equalTo(view.super);
+            make.bottom.equalTo(view.super.centerY).offset(-10);
+        };
     } // constructor
 
     moveUp() {
         $ui.animate({
             damping: 0.7,
             animation: () => {
-                $(this.id).remakeLayout(this.revealedLayout)
-                $(this.id).relayout()
-            }
-        })
+                $(this.id).remakeLayout(this.revealedLayout);
+                $(this.id).relayout();
+            },
+        });
     } // moveUp
 } // class QuestionView
 
 class AnswerView extends MovableContentView {
     constructor(id) {
-        super(id)
-        this.answerBlurId = "blur_of_" + id
+        super(id);
+        this.answerBlurId = 'blur_of_' + id;
 
         this.revealedLayout = (make, view) => {
-            this.layoutForSize(make, view)
+            this.layoutForSize(make, view);
 
-            make.centerX.equalTo(view.super)
-            make.top.equalTo(view.super.centerY).offset(10)
-        }
+            make.centerX.equalTo(view.super);
+            make.top.equalTo(view.super.centerY).offset(10);
+        };
 
         let answerBlur = {
-            type: "blur",
+            type: 'blur',
             props: {
                 id: this.answerBlurId,
                 style: $blurStyle.ultraThinMaterial,
-                alpha: 0
+                alpha: 0,
             },
-            layout: $layout.fill
-        }
+            layout: $layout.fill,
+        };
 
-        this.toRender.views.push(answerBlur)
+        this.toRender.views.push(answerBlur);
 
-        this.markdownView.props.userInteractionEnabled = true
+        this.markdownView.props.userInteractionEnabled = true;
     } // constructor
 
     moveDown() {
         $ui.animate({
             damping: 0.7,
             animation: () => {
-                $(this.answerBlurId).alpha = 0
-                $(this.id).remakeLayout(this.revealedLayout)
-                $(this.id).relayout()
-            }
-        })
+                $(this.answerBlurId).alpha = 0;
+                $(this.id).remakeLayout(this.revealedLayout);
+                $(this.id).relayout();
+            },
+        });
     } // moveDown
 
     resetAndChangeContent(contentType, content) {
-        this.reset()
+        this.reset();
         $ui.animate({
             duration: 0.2,
             animation: () => {
-                $(this.answerBlurId).alpha = 1
+                $(this.answerBlurId).alpha = 1;
             },
             completion: () => {
-                this.changeContent(contentType, content)
-            }
-        })
+                this.changeContent(contentType, content);
+            },
+        });
     }
 } // class AnswerView
 
 class MemoryView {
     constructor(id, callBack) {
-        this.revealed = false
+        this.revealed = false;
 
-        this.qViewId = "qv"
-        this.aViewId = "av"
-        this.questionView = new QuestionView(this.qViewId)
-        this.answerView = new AnswerView(this.aViewId)
-        this.buttonAreaId = "button_area" + id
+        this.qViewId = 'qv';
+        this.aViewId = 'av';
+        this.questionView = new QuestionView(this.qViewId);
+        this.answerView = new AnswerView(this.aViewId);
+        this.buttonAreaId = 'button_area' + id;
 
-        this.questionView.setEvents("touchesBegan", (sender, location) => {
+        this.questionView.setEvents('touchesBegan', (sender, location) => {
             if (!this.revealed)
                 sender.info = {
                     whereTouchBegan: location.y,
                     initialQPos: $(this.qViewId).frame.y,
                     initialAPos: $(this.aViewId).frame.y,
-                    needTaptic: true
-                }
-        }) // touchesBegan
-        this.questionView.setEvents("touchesMoved", (sender, location) => {
+                    needTaptic: true,
+                };
+        }); // touchesBegan
+        this.questionView.setEvents('touchesMoved', (sender, location) => {
             if (!this.revealed) {
                 // change position
-                let targetQ = $(this.qViewId)
-                let targetA = $(this.aViewId)
-                let offset = location.y - sender.info.whereTouchBegan
+                let targetQ = $(this.qViewId);
+                let targetA = $(this.aViewId);
+                let offset = location.y - sender.info.whereTouchBegan;
                 if (-offset > CLOSE_THRESHOLD && sender.info.needTaptic) {
-                    let newInfo = sender.info
-                    newInfo.needTaptic = false
-                    sender.info = newInfo
-                    $device.taptic(2)
+                    let newInfo = sender.info;
+                    newInfo.needTaptic = false;
+                    sender.info = newInfo;
+                    $device.taptic(2);
                 }
                 if (-offset < CLOSE_THRESHOLD) {
-                    let newInfo = sender.info
-                    newInfo.needTaptic = true
-                    sender.info = newInfo
+                    let newInfo = sender.info;
+                    newInfo.needTaptic = true;
+                    sender.info = newInfo;
                 }
                 targetQ.frame = $rect(
                     targetQ.frame.x,
                     sender.info.initialQPos + offset / 2,
                     targetQ.size.width,
                     targetQ.size.height
-                )
+                );
                 targetA.frame = $rect(
                     targetA.frame.x,
                     sender.info.initialAPos - offset / 2,
                     targetA.size.width,
                     targetA.size.height
-                )
+                );
             } // if revealed
-        }) // touchesMoved
-        this.questionView.setEvents("touchesEnded", (sender, location) => {
+        }); // touchesMoved
+        this.questionView.setEvents('touchesEnded', (sender, location) => {
             if (!this.revealed) {
                 if (
                     sender.info.whereTouchBegan - location.y >
                     CLOSE_THRESHOLD
                 ) {
-                    this.revealAnswer()
+                    this.revealAnswer();
                 } else {
-                    sender.userInteractionEnabled = false
+                    sender.userInteractionEnabled = false;
                     $ui.animate({
                         damping: 0.6,
                         animation: () => {
-                            let targetQ = $(this.qViewId)
-                            let targetA = $(this.aViewId)
+                            let targetQ = $(this.qViewId);
+                            let targetA = $(this.aViewId);
 
                             targetQ.frame = $rect(
                                 targetQ.frame.x,
                                 sender.info.initialQPos,
                                 targetQ.size.width,
                                 targetQ.size.height
-                            )
+                            );
                             targetA.frame = $rect(
                                 targetA.frame.x,
                                 sender.info.initialAPos,
                                 targetA.size.width,
                                 targetA.size.height
-                            )
+                            );
                         }, // animation
                         completion: () => {
-                            sender.userInteractionEnabled = true
-                        }
-                    }) // $ui.animate
+                            sender.userInteractionEnabled = true;
+                        },
+                    }); // $ui.animate
                 } // if - else
             } // if revealed
-        }) // touchesEnded
+        }); // touchesEnded
 
         let buttonArea = {
-            type: "stack",
+            type: 'stack',
             props: {
                 id: this.buttonAreaId,
                 userInteractionEnabled: false,
@@ -212,89 +212,89 @@ class MemoryView {
                 stack: {
                     views: [
                         this.makeRememberForgetButton(
-                            "103",
-                            $color("green"),
+                            '103',
+                            $color('green'),
                             callBack.remember
                         ),
                         this.makeRememberForgetButton(
-                            "119",
-                            $color("yellow"),
+                            '119',
+                            $color('yellow'),
                             callBack.forget
-                        )
-                    ] // views
-                } // stack
+                        ),
+                    ], // views
+                }, // stack
             }, // props
             layout: (make, view) => {
-                make.height.equalTo(50)
-                make.bottom.left.right.inset(10)
-            } // layout
-        } // buttonArea
+                make.height.equalTo(50);
+                make.bottom.left.right.inset(10);
+            }, // layout
+        }; // buttonArea
 
         let memoryArea = {
-            type: "view",
+            type: 'view',
             views: [this.answerView.toRender, this.questionView.toRender],
             layout: (make, view) => {
-                make.top.left.right.equalTo(view.super)
-                make.bottom.equalTo(view.prev.top)
-            }
-        } // memoryArea
+                make.top.left.right.equalTo(view.super);
+                make.bottom.equalTo(view.prev.top);
+            },
+        }; // memoryArea
 
         this.toRender = {
-            type: "view",
+            type: 'view',
             views: [buttonArea, memoryArea], // views
             layout: $layout.fill,
             events: {
-                ready: sender => {
-                    $(this.buttonAreaId).moveToFront()
-                    this.resetAndNext(callBack.ready())
-                }
-            }
-        } // toRender
+                ready: (sender) => {
+                    $(this.buttonAreaId).moveToFront();
+                    this.resetAndNext(callBack.ready());
+                },
+            },
+        }; // toRender
     } // constructor
 
     makeRememberForgetButton(icon_num, icon_color, callBack) {
         return {
-            type: "button",
+            type: 'button',
             props: {
-                icon: $icon(icon_num, icon_color, $size(40, 40))
+                icon: $icon(icon_num, icon_color, $size(40, 40)),
             },
             events: {
                 tapped: () => {
-                    this.resetAndNext(callBack())
-                } // tapped
-            } // events
-        } // returned view
+                    this.resetAndNext(callBack());
+                }, // tapped
+            }, // events
+        }; // returned view
     } // rememberForgetButton
 
     enableButtonArea() {
-        $(this.buttonAreaId).userInteractionEnabled = true
-        $(this.buttonAreaId).alpha = 1
+        $(this.buttonAreaId).userInteractionEnabled = true;
+        $(this.buttonAreaId).alpha = 1;
     }
 
     disableButtonArea() {
-        $(this.buttonAreaId).userInteractionEnabled = false
-        $(this.buttonAreaId).alpha = 0.5
+        $(this.buttonAreaId).userInteractionEnabled = false;
+        $(this.buttonAreaId).alpha = 0.5;
     }
 
     resetAndNext(mem) {
-        if (!mem) return
+        if (!mem) return;
 
-        this.disableButtonArea()
-        this.revealed = false
+        this.disableButtonArea();
+        this.revealed = false;
 
-        let { type, question, answer } = mem
-        this.questionView.reset()
-        this.questionView.changeContent((type >> 0) & 1, question)
-        this.answerView.resetAndChangeContent((type >> 1) & 1, answer)
+        let { type, question, answer } = mem;
+        this.questionView.reset();
+        this.questionView.changeContent((type >> 0) & 1, question);
+        this.answerView.resetAndChangeContent((type >> 1) & 1, answer);
     }
 
     revealAnswer() {
-        this.enableButtonArea()
-        this.revealed = true
+        this.enableButtonArea();
+        this.revealed = true;
 
-        this.questionView.moveUp()
-        this.answerView.moveDown()
+        this.questionView.moveUp();
+        this.answerView.moveDown();
     }
 } // class
 
-module.exports = MemoryView
+module.exports = MemoryView;

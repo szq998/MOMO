@@ -1,263 +1,277 @@
 class CategoryMenuView {
     constructor(id, callBack, layout) {
-        this.id = id
-        this.callBack = callBack
+        this.id = id;
+        this.callBack = callBack;
 
-        this.ctgPopover
+        this.ctgPopover;
 
         this.toRender = {
-            type: "menu",
+            type: 'menu',
             props: {
                 id: this.id,
-                items: ["全部"].concat(this.callBack.getAllCategories()),
-                dynamicWidth: true
+                items: ['全部'].concat(this.callBack.getAllCategories()),
+                dynamicWidth: true,
             },
             layout: layout,
             events: {
-                changed: sender => {
-                    this.callBack.doAfterCategoryChanged()
+                changed: (sender) => {
+                    this.callBack.doAfterCategoryChanged();
                 },
-                longPressed: info => {
-                    let sender = info.sender
+                longPressed: (info) => {
+                    let sender = info.sender;
                     this.ctgPopover = $ui.popover({
                         sourceView: sender,
-                        views: [this.makeCategoryEditView()]
-                    })
-                } // longPressed
-            } // events
-        }
+                        views: [this.makeCategoryEditView()],
+                    });
+                }, // longPressed
+            }, // events
+        };
     } // constructor
 
     makeCategoryEditView() {
-        let reorderSrcIdx
-        let reorderDstIdx
+        let reorderSrcIdx;
+        let reorderDstIdx;
 
-        let allCtgy = this.callBack.getAllCategories()
+        let allCtgy = this.callBack.getAllCategories();
         if (allCtgy.length) {
             let template = {
-                props: { bgcolor: $color("clear") },
+                props: { bgcolor: $color('clear') },
                 views: [
                     {
-                        type: "label",
-                        props: { id: "label", align: $align.center },
-                        layout: $layout.fill
-                    }
-                ]
-            } // template
+                        type: 'label',
+                        props: { id: 'label', align: $align.center },
+                        layout: $layout.fill,
+                    },
+                ],
+            }; // template
 
             let actions = [
                 {
-                    title: "删除",
-                    color: $color("red"), // default to gray
+                    title: '删除',
+                    color: $color('red'), // default to gray
                     handler: (sender, indexPath) => {
-                        this.deleteCategory(sender, indexPath)
-                    }
+                        this.deleteCategory(sender, indexPath);
+                    },
                 },
                 {
-                    title: "重命名",
+                    title: '重命名',
                     handler: (sender, indexPath) => {
-                        this.renameCategoty(sender, indexPath)
-                    }
+                        this.renameCategoty(sender, indexPath);
+                    },
                 },
                 {
-                    title: "合并到...",
+                    title: '合并到...',
                     handler: (sender, indexPath) => {
-                        this.mergeCategory(sender, indexPath)
-                    }
-                }
-            ]
+                        this.mergeCategory(sender, indexPath);
+                    },
+                },
+            ];
 
             return {
-                type: "list",
+                type: 'list',
                 props: {
-                    bgcolor: $color("tertiarySurface"),
-                    separatorColor: $color("separatorColor", "darkGray"),
+                    bgcolor: $color('tertiarySurface'),
+                    separatorColor: $color('separatorColor', 'darkGray'),
                     reorder: true,
-                    data: allCtgy.map(ctg => {
-                        return { label: { text: ctg } }
+                    data: allCtgy.map((ctg) => {
+                        return { label: { text: ctg } };
                     }),
                     template: template,
-                    actions: actions
+                    actions: actions,
                 },
                 layout: $layout.fill,
                 events: {
-                    reorderBegan: indexPath => {
-                        reorderSrcIdx = indexPath.row
-                        reorderDstIdx = indexPath.row
+                    reorderBegan: (indexPath) => {
+                        reorderSrcIdx = indexPath.row;
+                        reorderDstIdx = indexPath.row;
                     },
                     reorderMoved: (fromIndexPath, toIndexPath) => {
-                        reorderDstIdx = toIndexPath.row
+                        reorderDstIdx = toIndexPath.row;
                     },
-                    reorderFinished: data => {
-                        this.reorderCategory(reorderSrcIdx, reorderDstIdx)
-                    } // reorderFinished
-                } // events
-            } // return
+                    reorderFinished: (data) => {
+                        this.reorderCategory(reorderSrcIdx, reorderDstIdx);
+                    }, // reorderFinished
+                }, // events
+            }; // return
         } else {
             return {
-                type: "label",
-                props: { text: "无内容", bgcolor: $color("tertiarySurface"), align: $align.center },
-                layout: $layout.fill
-            }
+                type: 'label',
+                props: {
+                    text: '无内容',
+                    bgcolor: $color('tertiarySurface'),
+                    align: $align.center,
+                },
+                layout: $layout.fill,
+            };
         }
     } // makeCategoryEditView
 
     async deleteCategory(sender, indexPath, ctgPop) {
-        let ctgy = sender.data[indexPath.row].label.text
-        let count = this.callBack.getCountByCategory(ctgy)
+        let ctgy = sender.data[indexPath.row].label.text;
+        let count = this.callBack.getCountByCategory(ctgy);
 
-        let isDelete = true
+        let isDelete = true;
         if (count) {
             let deleteAction = await $ui.alert({
-                title: "确认删除？",
-                message: "该类别下有" + count + "条记录",
+                title: '确认删除？',
+                message: '该类别下有' + count + '条记录',
                 actions: [
-                    { title: "取消", style: 1 },
-                    { title: "确认", style: 2 }
-                ]
-            })
-            isDelete = deleteAction.index
+                    { title: '取消', style: 1 },
+                    { title: '确认', style: 2 },
+                ],
+            });
+            isDelete = deleteAction.index;
         }
         if (isDelete) {
-            let oldCtgy = this.callBack.getAllCategories()
-            this.callBack.deleteCategory(ctgy)
-            let newCtgy = this.callBack.getAllCategories()
+            let oldCtgy = this.callBack.getAllCategories();
+            this.callBack.deleteCategory(ctgy);
+            let newCtgy = this.callBack.getAllCategories();
 
             // change category list
-            sender.delete(indexPath)
+            sender.delete(indexPath);
             // change main list
-            this.categoryRemoved(oldCtgy, newCtgy)
+            this.categoryRemoved(oldCtgy, newCtgy);
 
-            if (newCtgy.length == 0) this.ctgPopover.dismiss()
+            if (newCtgy.length == 0) this.ctgPopover.dismiss();
         }
     }
 
     async renameCategoty(sender, indexPath) {
-        let oldName = sender.data[indexPath.row].label.text
-        let newName = await this.callBack.inputCategory(oldName)
+        let oldName = sender.data[indexPath.row].label.text;
+        let newName = await this.callBack.inputCategory(oldName);
         if (newName)
             if (this.callBack.renameCategory(oldName, newName)) {
                 // change category list
-                sender.delete(indexPath)
+                sender.delete(indexPath);
                 sender.insert({
                     indexPath: indexPath,
-                    value: { label: { text: newName } }
-                })
+                    value: { label: { text: newName } },
+                });
                 // change main list
-                this.callBack.doAfterCategoryRenamed(oldName, newName)
+                this.callBack.doAfterCategoryRenamed(oldName, newName);
                 // change category menu
-                this.reloadCategory()
-            } else $ui.warning("重命名失败，可能与已有名称重复")
+                this.reloadCategory();
+            } else $ui.warning('重命名失败，可能与已有名称重复');
     }
 
     async mergeCategory(sender, indexPath) {
-        let srcCtgy = sender.data[indexPath.row].label.text
-        let targets = this.callBack.getAllCategories()
-        targets.splice(targets.indexOf(srcCtgy), 1)
+        let srcCtgy = sender.data[indexPath.row].label.text;
+        let targets = this.callBack.getAllCategories();
+        targets.splice(targets.indexOf(srcCtgy), 1);
         if (!targets.length) {
-            $ui.warning("无可合并的目标")
-            return
+            $ui.warning('无可合并的目标');
+            return;
         }
         let selected = await $picker.data({
             props: {
-                items: [targets]
-            }
-        })
+                items: [targets],
+            },
+        });
 
         if (selected) {
-            let dstCtgy = selected[0]
-            let oldCtgy = this.callBack.getAllCategories()
-            this.callBack.mergeCategory(srcCtgy, dstCtgy)
-            let newCtgy = this.callBack.getAllCategories()
+            let dstCtgy = selected[0];
+            let oldCtgy = this.callBack.getAllCategories();
+            this.callBack.mergeCategory(srcCtgy, dstCtgy);
+            let newCtgy = this.callBack.getAllCategories();
             // change category list
-            sender.delete(indexPath)
+            sender.delete(indexPath);
             // change category menu
-            this.categoryRemoved(oldCtgy, newCtgy, dstCtgy)
+            this.categoryRemoved(oldCtgy, newCtgy, dstCtgy);
             // change main list
             if (this.getCurrentCategory() == dstCtgy) {
-                this.callBack.doAfterCategoryChanged()
+                this.callBack.doAfterCategoryChanged();
             }
         }
     }
 
     reorderCategory(reorderSrcIdx, reorderDstIdx) {
         if (reorderSrcIdx != reorderDstIdx) {
-            let allCtgy = this.callBack.getAllCategories()
+            let allCtgy = this.callBack.getAllCategories();
             // change main list
-            let currCtgy = this.getCurrentCategory()
+            let currCtgy = this.getCurrentCategory();
             if (currCtgy) {
-                let currIdx = allCtgy.indexOf(currCtgy)
+                let currIdx = allCtgy.indexOf(currCtgy);
                 if (currIdx == reorderSrcIdx)
-                    $(this.id).index = reorderDstIdx + 1
-                else if (reorderSrcIdx < reorderDstIdx && currIdx > reorderSrcIdx && currIdx <= reorderDstIdx)
-                    $(this.id).index = currIdx + 1 - 1 // consider 全部
-                else if (reorderSrcIdx > reorderDstIdx && currIdx < reorderSrcIdx && currIdx >= reorderDstIdx)
-                    $(this.id).index = currIdx + 1 + 1 // consider 全部
+                    $(this.id).index = reorderDstIdx + 1;
+                else if (
+                    reorderSrcIdx < reorderDstIdx &&
+                    currIdx > reorderSrcIdx &&
+                    currIdx <= reorderDstIdx
+                )
+                    $(this.id).index = currIdx + 1 - 1;
+                // consider 全部
+                else if (
+                    reorderSrcIdx > reorderDstIdx &&
+                    currIdx < reorderSrcIdx &&
+                    currIdx >= reorderDstIdx
+                )
+                    $(this.id).index = currIdx + 1 + 1; // consider 全部
             }
             // update database
-            let srcCtgy = allCtgy[reorderSrcIdx]
-            let dstCtgy = allCtgy[reorderDstIdx]
-            this.callBack.reorderCategory(srcCtgy, dstCtgy)
+            let srcCtgy = allCtgy[reorderSrcIdx];
+            let dstCtgy = allCtgy[reorderDstIdx];
+            this.callBack.reorderCategory(srcCtgy, dstCtgy);
             // change category menu
-            this.reloadCategory()
+            this.reloadCategory();
         }
     } // reorderCategory
 
     categoryRemoved(oldCtgy, newCtgy, backTo = null) {
-        let curr = this.getCurrentCategory()
-        let currIdx = oldCtgy.indexOf(curr)
-        if (oldCtgy.length == newCtgy.length) return // no deletion
-        if (!curr) { // 当前在 全部
-            this.reloadCategory()
-            this.callBack.doAfterCategoryChanged()
-            return
+        let curr = this.getCurrentCategory();
+        let currIdx = oldCtgy.indexOf(curr);
+        if (oldCtgy.length == newCtgy.length) return; // no deletion
+        if (!curr) {
+            // 当前在 全部
+            this.reloadCategory();
+            this.callBack.doAfterCategoryChanged();
+            return;
         }
 
-        let i = 0
-        let idxDec = 0
+        let i = 0;
+        let idxDec = 0;
         for (const j in oldCtgy) {
             if (oldCtgy[j] != newCtgy[i]) {
                 // ctgy is deleted
-                if (currIdx > j) ++idxDec
+                if (currIdx > j) ++idxDec;
                 else if (currIdx == j) {
-                    this.reloadCategory()
-                    this.changeToCategory(backTo)
-                    this.callBack.doAfterCategoryChanged()
-                    return
+                    this.reloadCategory();
+                    this.changeToCategory(backTo);
+                    this.callBack.doAfterCategoryChanged();
+                    return;
                 }
-            } else ++i
+            } else ++i;
         }
-        currIdx -= idxDec
-        currIdx++ // 全部
+        currIdx -= idxDec;
+        currIdx++; // 全部
 
-        this.reloadCategory()
-        $(this.id).index = currIdx
+        this.reloadCategory();
+        $(this.id).index = currIdx;
     }
 
     reloadCategory() {
-        let newCtgy = this.callBack.getAllCategories()
-        newCtgy.unshift("全部")
-        $(this.id).items = newCtgy
+        let newCtgy = this.callBack.getAllCategories();
+        newCtgy.unshift('全部');
+        $(this.id).items = newCtgy;
     }
 
     getCurrentCategory() {
-        let index = $(this.id).index
-        if (index > 0) return $(this.id).items[index]
-        else return null
+        let index = $(this.id).index;
+        if (index > 0) return $(this.id).items[index];
+        else return null;
     }
 
     changeToCategory(ctgy) {
-        if (!ctgy) $(this.id).index = 0
+        if (!ctgy) $(this.id).index = 0;
         else {
-            let allCtgy = $(this.id).items
-            let index = allCtgy.indexOf(ctgy)
+            let allCtgy = $(this.id).items;
+            let index = allCtgy.indexOf(ctgy);
             if (index == -1) {
-                console.error("Error: category not found.")
-                return
+                console.error('Error: category not found.');
+                return;
             }
-            $(this.id).index = index
+            $(this.id).index = index;
         }
     }
 } // class
 
-module.exports = CategoryMenuView
+module.exports = CategoryMenuView;
