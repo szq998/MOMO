@@ -56,7 +56,7 @@ class CategoryMenuView {
                 {
                     title: '重命名',
                     handler: (sender, indexPath) => {
-                        this.renameCategoty(sender, indexPath);
+                        this.renameCategory(sender, indexPath);
                     },
                 },
                 {
@@ -136,7 +136,7 @@ class CategoryMenuView {
         }
     }
 
-    async renameCategoty(sender, indexPath) {
+    async renameCategory(sender, indexPath) {
         let oldName = sender.data[indexPath.row].label.text;
         let newName = await this.callBack.inputCategory(oldName);
         if (newName)
