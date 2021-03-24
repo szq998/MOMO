@@ -42,7 +42,7 @@ class MemoryListView {
             }, // props
             events: {
                 ready: (sender) => {
-                    this.categoryChanged();
+                    this.categorySwitched();
                 },
                 pulled: (sender) => {
                     this.refreshMemoryList();
@@ -56,6 +56,9 @@ class MemoryListView {
                         data.memInfo.qPath
                     );
                 }, // didSelected
+                forEachItem: (cell, indexPath) => {
+                    console.log(a[1]);
+                },
             }, // events
             layout: layout,
         }; // toRender
@@ -195,6 +198,40 @@ class MemoryListView {
                     },
                 },
                 {
+                    type: 'view',
+                    props: {
+                        id: 'load_indicator',
+                        cornerRadius: 5,
+                        borderWidth: 1,
+                        borderColor: $color('lightGray', 'darkGray'),
+                    },
+                    views: [
+                        {
+                            type: 'spinner',
+                            props: {
+                                loading: false,
+                            },
+                            layout: $layout.center,
+                        },
+                        {
+                            type: 'image',
+                            props: {
+                                hidden: true,
+                                symbol: 'icloud.and.arrow.down',
+                            },
+                            layout: $layout.center,
+                        },
+                    ],
+                    layout: (make, view) => {
+                        make.width.equalTo(SNAPSHOT_WIDTH);
+                        make.height
+                            .equalTo(view.width)
+                            .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
+
+                        make.top.left.bottom.inset(SNAPSHOT_INSET);
+                    },
+                },
+                {
                     type: 'label',
                     props: {
                         id: 'memory_desc',
@@ -251,6 +288,7 @@ class MemoryListView {
             $(this.footerTextId).hidden = true;
             sender.endFetchingMore();
             sender.data = this.data;
+            // TODO: trigger image loading
         });
     }
 
@@ -262,6 +300,7 @@ class MemoryListView {
             newData.memory_desc.text = desc;
             this.data[indexPath.row] = newData;
             this.callBack.changeDescriptionById(data.id, desc);
+            // TODO: only change text, not replace entire row cell
             sender.delete(indexPath);
             sender.insert({
                 indexPath: indexPath,
@@ -321,6 +360,7 @@ class MemoryListView {
         this.callBack.changeContentById(data.id).then((newMemInfo) => {
             if (data.memInfo.category == newMemInfo.category) {
                 // category not changed
+                // TODO: trigger image loading
                 data.memInfo = newMemInfo;
                 data.memory_desc.text = newMemInfo.desc;
                 data.snapshot.src = newMemInfo.sPath;
@@ -342,10 +382,11 @@ class MemoryListView {
         }); // Promise.then
     } // changeContent
 
-    categoryChanged() {
+    categorySwitched() {
         this.nextPage = 0;
         this.data = this.getNextPageData();
 
+        // TODO: trigger image loading
         $(this.id).data = this.data;
     }
 
@@ -395,6 +436,11 @@ class MemoryListView {
                 detailed_info: {
                     text: mem.detailedInfo,
                 },
+
+                // TODO
+                load_indicator: {
+                    info: { path: 'test', m: () => console.log('12312') },
+                },
             });
         } // for
         return newData;
@@ -418,6 +464,7 @@ class MemoryListView {
         $delay(0.5, () => {
             this.nextPage = 0;
             this.data = this.getNextPageData();
+            // TODO: trigger image loading
             $(this.id).endRefreshing();
             $(this.id).data = this.data;
             $(this.headerId).text = '所有记录';
