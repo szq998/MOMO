@@ -2,191 +2,269 @@ const DB_PATH = './assets/memory.db'; //"shared://test.db"
 const MEMORY_RESOURCE_PATH = './assets/memory';
 
 $app.theme = 'auto';
-$app.listen({
-    // 在应用退出之前调用
-    exit: function () {
-        if (memoryDB) memoryDB.close();
-        console.log('memoryDB closed');
-    },
-});
 
-let MemoryDatabase = require('./scripts/memory_database.js');
-let MemoryModel = require('./scripts/memory_model.js');
-let MemoryView = require('./scripts/memory_view.js');
-let MainView = require('./scripts/main_view.js');
-let MemorySettingView = require('./scripts/memory_setting_view.js');
+const MemoryDatabase = require('./scripts/memory_database.js');
+const MemoryModel = require('./scripts/memory_model.js');
+const MemoryView = require('./scripts/memory_view.js');
+const MainView = require('./scripts/main_view.js');
+const MemorySettingView = require('./scripts/memory_setting_view.js');
 
-let memoryDB;
-if (!$file.exists(DB_PATH)) {
-    // TODO: async file
-    memoryDB = MemoryDatabase.createMemoryDatabase(DB_PATH);
-    $file.mkdir(MEMORY_RESOURCE_PATH);
-    $ui.alert('首次运行，已创建数据库');
-} else memoryDB = new MemoryDatabase(DB_PATH);
+loadMemoryDB()
+    .catch((err) => {
+        console.error(err);
+        $app.close();
+    })
+    .then(main);
 
-let mmCallBack = {
-    finish: () => {
-        $ui.pop();
-        $ui.success('完成');
-        mainView.refreshMemoryList();
-    },
-};
-let memoryModel = new MemoryModel(memoryDB, mmCallBack);
+function main(memoryDB) {
+    $app.listen({
+        // 在应用退出之前调用
+        exit: function () {
+            if (memoryDB) memoryDB.close();
+            console.log('memoryDB closed');
+        },
+    });
 
-let mvCallBack = {
-    remember: getRememberOrForgetCallback(memoryModel, 'r'),
-    forget: getRememberOrForgetCallback(memoryModel, 'f'),
-    ready: () => {
-        $ui.title = memoryModel.getCurrentDescription();
-        let currId = memoryModel.getCurrentId();
-        let currType = memoryModel.getCurrentType();
-        let content = getContent(currId, currType);
+    const mmCallBack = {
+        finish: () => {
+            $ui.pop();
+            $ui.success('完成');
+            mainView.refreshMemoryList();
+        },
+    };
+    const memoryModel = new MemoryModel(memoryDB, mmCallBack);
 
-        content.type = currType;
-        return content;
-    },
-};
-let memoryView = new MemoryView('memory_view', mvCallBack);
+    const mvCallBack = {
+        remember: getRememberOrForgetCallback(memoryModel, 'r'),
+        forget: getRememberOrForgetCallback(memoryModel, 'f'),
+        ready: () => {
+            $ui.title = memoryModel.getCurrentDescription();
+            let currId = memoryModel.getCurrentId();
+            let currType = memoryModel.getCurrentType();
+            let content = getContent(currId, currType);
 
-let mavCallBack = {
-    startMemory: startMemory,
-    addMemory: () => {
-        return memorySettingView.addMemory();
-    },
-    getAllCategories: () => {
-        return memoryDB.getAllCategories();
-    },
-    getCountByCategory: (ctgy) => {
-        return memoryDB.getCountByCategory(ctgy);
-    },
-    addCategory: (text) => {
-        if (text == '全部') return false;
-        else return memoryDB.addCategory(text);
-    },
-    reorderCategory: (srcCtgy, dstCtgy) => {
-        memoryDB.reorderCategory(srcCtgy, dstCtgy);
-    },
-    deleteCategory: (ctgy) => {
-        memoryDB.deleteCategory(ctgy);
-    },
-    renameCategory: (ctgy, newName) => {
-        return memoryDB.renameCategory(ctgy, newName);
-    },
-    mergeCategory: (srcCtgy, dstCtgy) => {
-        memoryDB.mergeCategory(srcCtgy, dstCtgy);
-    },
-    deleteById: (id) => {
-        memoryDB.deleteById(id);
-        // delete resource
-        let cDir = getContentDir(id);
-        $file.delete(cDir);
-    },
-    changeDescriptionById: (id, newDesc) => {
-        memoryDB.updateDescriptionById(id, newDesc);
-    },
-    changeCategoryById: (id, newCtgy) => {
-        memoryDB.updateCategoryById(id, newCtgy);
-    },
-    changeContentById: (id) => {
-        let mem = memoryDB.getMemoryById(id);
-        let { question, answer } = getContent(id, mem.type);
-        let oldContent = {
-            type: mem.type,
-            desc: mem.description,
-            question: question,
-            answer: answer,
-            category: mem.category,
-        };
+            content.type = currType;
+            return content;
+        },
+    };
+    const memoryView = new MemoryView('memory_view', mvCallBack);
 
-        return new Promise((resolve) => {
-            memorySettingView.editMemory(id, oldContent).then(() => {
-                let newMem = memoryDB.getMemoryById(id);
-                let { qPath, aPath, sPath } = getContentPath(id, newMem.type);
-                let newInfo = {
-                    type: newMem.type,
-                    desc: newMem.description,
+    const mavCallBack = {
+        startMemory: () => {
+            startMemory(memoryDB, memoryModel, memoryView, mainView);
+        },
+        addMemory: () => {
+            return memorySettingView.addMemory();
+        },
+        getAllCategories: () => {
+            return memoryDB.getAllCategories();
+        },
+        getCountByCategory: (ctgy) => {
+            return memoryDB.getCountByCategory(ctgy);
+        },
+        addCategory: (text) => {
+            if (text == '全部') return false;
+            else return memoryDB.addCategory(text);
+        },
+        reorderCategory: (srcCtgy, dstCtgy) => {
+            memoryDB.reorderCategory(srcCtgy, dstCtgy);
+        },
+        deleteCategory: (ctgy) => {
+            memoryDB.deleteCategory(ctgy);
+        },
+        renameCategory: (ctgy, newName) => {
+            return memoryDB.renameCategory(ctgy, newName);
+        },
+        mergeCategory: (srcCtgy, dstCtgy) => {
+            memoryDB.mergeCategory(srcCtgy, dstCtgy);
+        },
+        deleteById: (id) => {
+            memoryDB.deleteById(id);
+            // delete resource
+            let cDir = getContentDir(id);
+            $file.delete(cDir);
+        },
+        changeDescriptionById: (id, newDesc) => {
+            memoryDB.updateDescriptionById(id, newDesc);
+        },
+        changeCategoryById: (id, newCtgy) => {
+            memoryDB.updateCategoryById(id, newCtgy);
+        },
+        changeContentById: (id) => {
+            let mem = memoryDB.getMemoryById(id);
+            let { question, answer } = getContent(id, mem.type);
+            let oldContent = {
+                type: mem.type,
+                desc: mem.description,
+                question: question,
+                answer: answer,
+                category: mem.category,
+            };
+
+            return new Promise((resolve) => {
+                memorySettingView.editMemory(id, oldContent).then(() => {
+                    let newMem = memoryDB.getMemoryById(id);
+                    let { qPath, aPath, sPath } = getContentPath(
+                        id,
+                        newMem.type
+                    );
+                    let newInfo = {
+                        type: newMem.type,
+                        desc: newMem.description,
+                        qPath: qPath,
+                        aPath: aPath,
+                        sPath: sPath,
+                        category: newMem.category,
+                    };
+                    resolve(newInfo);
+                });
+            });
+        },
+        getMemoryByPage: (pageNo, pageSize, category) => {
+            let memory = [];
+            if (pageNo == 0)
+                memory = memory.concat(memoryDB.getNewlyAddedMemory(category));
+            memory = memory.concat(
+                memoryDB.getMemory(pageNo, pageSize, category, false)
+            );
+
+            return memory.map((m) => {
+                let { qPath, aPath, sPath } = getContentPath(m.id, m.type);
+                let lastDay = m.time == 0 ? undefined : getDaysAgo(m.time);
+
+                let detail = '';
+                if (m.time == 0) detail += '新添加';
+                else if (lastDay == 0) detail += '今天';
+                else if (lastDay == 1) detail += '昨天';
+                else detail += lastDay + '天前';
+                detail += m.time && !m.remembered ? ' 忘记' : '';
+
+                let memInfo = {
+                    type: m.type,
+                    desc: m.description,
+                    category: m.category,
                     qPath: qPath,
                     aPath: aPath,
                     sPath: sPath,
-                    category: newMem.category,
                 };
-                resolve(newInfo);
+                return {
+                    id: m.id,
+                    memInfo: memInfo,
+                    degree: m.degree,
+                    detailedInfo: detail,
+                };
             });
-        });
-    },
-    getMemoryByPage: (pageNo, pageSize, category) => {
-        let memory = [];
-        if (pageNo == 0)
-            memory = memory.concat(memoryDB.getNewlyAddedMemory(category));
-        memory = memory.concat(
-            memoryDB.getMemory(pageNo, pageSize, category, false)
-        );
+        },
+    };
+    const mainView = new MainView('main_view', mavCallBack);
 
-        return memory.map((m) => {
-            let { qPath, aPath, sPath } = getContentPath(m.id, m.type);
-            let lastDay = m.time == 0 ? undefined : getDaysAgo(m.time);
+    const msvCallBack = {
+        inputCategory: MainView.inputCategory,
+        addCategory: (text) => {
+            if (text == '全部') return false;
+            else return memoryDB.addCategory(text);
+        },
+        getAllCategories: () => {
+            return memoryDB.getAllCategories(false);
+        },
+        add: (mem) => {
+            let newId = memoryDB.addMemory(mem.type, mem.desc, mem.category);
+            saveContent(newId, mem);
+        },
+        modify: (id, mem) => {
+            memoryDB.updateDescriptionById(id, mem.desc);
+            memoryDB.updateTypeById(id, mem.type);
+            memoryDB.updateCategoryById(id, mem.category);
 
-            let detail = '';
-            if (m.time == 0) detail += '新添加';
-            else if (lastDay == 0) detail += '今天';
-            else if (lastDay == 1) detail += '昨天';
-            else detail += lastDay + '天前';
-            detail += m.time && !m.remembered ? ' 忘记' : '';
+            saveContent(id, mem);
+        },
+    };
+    const memorySettingView = new MemorySettingView(
+        'memory_setting_view',
+        msvCallBack
+    );
 
-            let memInfo = {
-                type: m.type,
-                desc: m.description,
-                category: m.category,
-                qPath: qPath,
-                aPath: aPath,
-                sPath: sPath,
-            };
-            return {
-                id: m.id,
-                memInfo: memInfo,
-                degree: m.degree,
-                detailedInfo: detail,
-            };
-        });
-    },
-};
-let mainView = new MainView('main_view', mavCallBack);
+    $ui.render({
+        props: {
+            title: '默默记点啥',
+            bgcolor: $color('#F2F1F6', 'primarySurface'),
+            titleView: memorySettingView.getNavBarView(),
+        },
+        views: [mainView.toRender, memorySettingView.toRender],
+    });
+}
 
-let msvCallBack = {
-    inputCategory: MainView.inputCategory,
-    addCategory: (text) => {
-        if (text == '全部') return false;
-        else return memoryDB.addCategory(text);
-    },
-    getAllCategories: () => {
-        return memoryDB.getAllCategories(false);
-    },
-    add: (mem) => {
-        let newId = memoryDB.addMemory(mem.type, mem.desc, mem.category);
-        saveContent(newId, mem);
-    },
-    modify: (id, mem) => {
-        memoryDB.updateDescriptionById(id, mem.desc);
-        memoryDB.updateTypeById(id, mem.type);
-        memoryDB.updateCategoryById(id, mem.category);
+function loadMemoryDB() {
+    return new Promise((resolve, reject) => {
+        let memoryDB;
+        if ($file.exists(DB_PATH)) {
+            // a db exists locally
+            memoryDB = new MemoryDatabase(DB_PATH);
+            resolve(memoryDB);
+        } else {
+            // no db exists locally
+            const iCloudMetaPath = getICloudMetaPath(DB_PATH)
+            if (!$file.exists(iCloudMetaPath)) {
+                // also no db exists in the iCloud, then create one
+                // create db
+                memoryDB = MemoryDatabase.createMemoryDatabase(DB_PATH);
+                // mkdir for memory resource
+                $file.mkdir(MEMORY_RESOURCE_PATH);
+                $ui.alert('首次运行，已创建数据库');
+                resolve(memoryDB);
+            } else {
+                // a db exists remotely in the iCloud, then try loading it
+                let indicatorStartTime = null;
+                // schedule a indicator if loading lasts more then 500ms
+                const delayedLoadingIndicator = setTimeout(() => {
+                    // show loading indicator
+                    $ui.render({
+                        props: { bgcolor: $color('#F2F1F6', 'primarySurface') },
+                        views: [
+                            {
+                                type: 'spinner',
+                                props: { loading: true },
+                                layout: $layout.center,
+                            },
+                        ],
+                    });
+                    indicatorStartTime = Date.now();
+                }, 500);
+                // try to download
+                $file
+                    .download(iCloudMetaPath)
+                    .then((_) => {
+                        // ensure indicator lasts more than 500ms, if it is shown
+                        if (
+                            indicatorStartTime &&
+                            Date.now() - indicatorStartTime < 500
+                        ) {
+                            setTimeout(() => {
+                                memoryDB = new MemoryDatabase(DB_PATH);
+                                resolve(memoryDB);
+                            }, 500 - (Date.now() - indicatorStartTime));
+                        } else {
+                            clearTimeout(delayedLoadingIndicator);
+                            memoryDB = new MemoryDatabase(DB_PATH);
+                            resolve(memoryDB);
+                        }
+                    })
+                    .catch((err) => {
+                        console.error(
+                            'Failed to download database file from iCloud. Check your network connection.'
+                        );
+                        reject(err);
+                    });
+            }
+        }
+    });
+}
 
-        saveContent(id, mem);
-    },
-};
-let memorySettingView = new MemorySettingView(
-    'memory_setting_view',
-    msvCallBack
-);
-
-$ui.render({
-    props: {
-        title: '默默记点啥',
-        bgcolor: $color('#F2F1F6', 'primarySurface'),
-        titleView: memorySettingView.getNavBarView(),
-    },
-    views: [mainView.toRender, memorySettingView.toRender],
-});
-
+function getICloudMetaPath(path) {
+    return path.replace(/(\/|^)([^\/]+)$/, (_, cap0, name) => {
+        return cap0 + '.' + name + '.icloud'
+    })
+}
 
 function getDaysAgo(lts0) {
     let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime();
@@ -254,7 +332,7 @@ function getRememberOrForgetCallback(memoryModel, rOrF) {
     };
 }
 
-function startMemory() {
+function startMemory(memoryDB, memoryModel, memoryView, mainView) {
     if (memoryDB.getCount() > 0) {
         // cache out
         let lastNum =
