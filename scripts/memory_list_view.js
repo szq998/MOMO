@@ -51,6 +51,7 @@ class MemoryListView {
                     this.bottomReached(sender);
                 }, // didReachBottom
                 didSelect: (sender, indexPath, data) => {
+                    // TODO: change quicklook functionality to select memory
                     this.quickLook(
                         (data.memInfo.type >> 0) & 1,
                         data.memInfo.qPath
@@ -248,7 +249,6 @@ class MemoryListView {
         let newData = this.getNextPageData();
         if (newData.length) {
             this.data = this.data.concat(newData);
-            // TODO: trigger image loading
             this.updateListData();
             $delay(0.5, () => {
                 $(this.footerTextId).hidden = true;
@@ -269,7 +269,7 @@ class MemoryListView {
             newData.memory_desc.text = desc;
             this.data[indexPath.row] = newData;
             this.callBack.changeDescriptionById(data.id, desc);
-            // TODO: only change text, not replace entire row cell
+
             sender.delete(indexPath);
             sender.insert({
                 indexPath: indexPath,
@@ -329,13 +329,14 @@ class MemoryListView {
         this.callBack.changeContentById(data.id).then((newMemInfo) => {
             if (data.memInfo.category == newMemInfo.category) {
                 // category not changed
-                // TODO: trigger image loading
                 data.memInfo = newMemInfo;
                 data.memory_desc.text = newMemInfo.desc;
-                data.snapshot.src = newMemInfo.sPath;
+                // data.snapshot.src = newMemInfo.sPath;
+                data.snapshotLoaded = false;
 
                 this.data[indexPath.row] = data;
-                sender.data = this.data;
+                this.updateListData();
+                // sender.data = this.data;
             } else {
                 // category also changed
                 this.callBack.reloadCategory();
@@ -353,8 +354,8 @@ class MemoryListView {
 
     updateListData() {
         $(this.id).data = this.data;
-        const mListOc = $(this.id).ocValue();
 
+        const mListOc = $(this.id).ocValue();
         for (let row = 0; row < this.data.length; row++) {
             const item = this.data[row];
             const {
@@ -435,15 +436,19 @@ class MemoryListView {
     categorySwitched() {
         this.nextPage = 0;
         this.data = this.getNextPageData();
-        // TODO: trigger image loading
         this.updateListData();
     }
 
     categoryRenamed(oldName, newName) {
         if (this.callBack.getCurrentCategory() == oldName) {
-            for (const i in this.data) {
-                this.data[i].memInfo.category = newName;
-                // TODO: may have bug here
+            for (const item of this.data) {
+                item.memInfo.category = newName;
+            }
+        } else if (this.callBack.getCurrentCategory() === null) {
+            for (const item of this.data) {
+                if (item.memInfo.category === oldName) {
+                    item.memInfo.category = newName;
+                }
             }
         }
     }
@@ -494,15 +499,32 @@ class MemoryListView {
     } // loadNextPage
 
     quickLook(contentType, path) {
-        if (contentType == ContentType.image) {
-            $quicklook.open({
-                url: 'file://' + $file.absolutePath(path).replace(' ', '%20'), // no space char
+        //TODO: prevent interaction while loading
+        $ui.loading(true);
+        this.callBack
+            .loadResource(path)
+            .then(
+                (data) => {
+                    if (contentType == ContentType.image) {
+                        $quicklook.open({
+                            url:
+                                'file://' +
+                                $file.absolutePath(path).replace(' ', '%20'), // no space char
+                        });
+                    } else if (contentType == ContentType.markdown) {
+                        let md = data.string;
+                        let html = $text.markdownToHtml(md);
+                        $quicklook.open({ html: html });
+                    } else console.error('Error: unsupported content type.');
+                },
+                (err) => {
+                    console.log(`Failed to preview content of path "${path}".`);
+                    console.error(err);
+                }
+            )
+            .finally(() => {
+                $ui.loading(false);
             });
-        } else if (contentType == ContentType.markdown) {
-            let md = $file.read(path).string; // TODO: async file
-            let html = $text.markdownToHtml(md);
-            $quicklook.open({ html: html });
-        } else console.error('Error: unsupported content type.');
     } // quicklook
 
     refreshMemoryList() {
@@ -510,7 +532,6 @@ class MemoryListView {
         $(this.headerId).text = '刷新中...';
         this.nextPage = 0;
         this.data = this.getNextPageData();
-        // TODO: trigger image loading
         this.updateListData();
         $delay(0.5, () => {
             $(this.id).endRefreshing();
