@@ -50,6 +50,7 @@ function main(memoryDB) {
     const memoryView = new MemoryView('memory_view', mvCallBack);
 
     const mavCallBack = {
+        loadResource: loadResource,
         startMemory: () => {
             startMemory(memoryDB, memoryModel, memoryView, mainView);
         },
@@ -194,6 +195,25 @@ function main(memoryDB) {
     });
 }
 
+function loadResource(path) {
+    return new Promise((resolve, reject) => {
+        if ($file.exists(path)) {
+                // resolve($file.read(path));
+            setTimeout(() => {
+                resolve($file.read(path));
+                // reject("123")
+                // console.log("loaded")
+            }, Math.random() * 5000);
+        } else {
+            const iCloudMetaPath = getICloudMetaPath(DB_PATH);
+            if (!$file.exists(iCloudMetaPath)) {
+                reject(new Error(`File at path "${path}" not found.`));
+            }
+            $file.download(iCloudMetaPath).then(resolve).catch(reject);
+        }
+    });
+}
+
 function loadMemoryDB() {
     return new Promise((resolve, reject) => {
         let memoryDB;
@@ -203,7 +223,7 @@ function loadMemoryDB() {
             resolve(memoryDB);
         } else {
             // no db exists locally
-            const iCloudMetaPath = getICloudMetaPath(DB_PATH)
+            const iCloudMetaPath = getICloudMetaPath(DB_PATH);
             if (!$file.exists(iCloudMetaPath)) {
                 // also no db exists in the iCloud, then create one
                 // create db
@@ -262,8 +282,8 @@ function loadMemoryDB() {
 
 function getICloudMetaPath(path) {
     return path.replace(/(\/|^)([^\/]+)$/, (_, cap0, name) => {
-        return cap0 + '.' + name + '.icloud'
-    })
+        return cap0 + '.' + name + '.icloud';
+    });
 }
 
 function getDaysAgo(lts0) {

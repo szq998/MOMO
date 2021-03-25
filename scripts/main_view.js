@@ -24,6 +24,7 @@ class MainView {
         };
 
         let callBackForMLV = {
+            loadResource: callBack.loadResource,
             getMemoryByPage: callBack.getMemoryByPage,
             changeContentById: callBack.changeContentById,
             changeCategoryById: callBack.changeCategoryById,
