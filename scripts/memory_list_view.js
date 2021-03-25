@@ -56,9 +56,6 @@ class MemoryListView {
                         data.memInfo.qPath
                     );
                 }, // didSelected
-                forEachItem: (cell, indexPath) => {
-                    console.log(a[1]);
-                },
             }, // events
             layout: layout,
         }; // toRender
@@ -198,40 +195,6 @@ class MemoryListView {
                     },
                 },
                 {
-                    type: 'view',
-                    props: {
-                        id: 'load_indicator',
-                        cornerRadius: 5,
-                        borderWidth: 1,
-                        borderColor: $color('lightGray', 'darkGray'),
-                    },
-                    views: [
-                        {
-                            type: 'spinner',
-                            props: {
-                                loading: false,
-                            },
-                            layout: $layout.center,
-                        },
-                        {
-                            type: 'image',
-                            props: {
-                                hidden: true,
-                                symbol: 'icloud.and.arrow.down',
-                            },
-                            layout: $layout.center,
-                        },
-                    ],
-                    layout: (make, view) => {
-                        make.width.equalTo(SNAPSHOT_WIDTH);
-                        make.height
-                            .equalTo(view.width)
-                            .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
-
-                        make.top.left.bottom.inset(SNAPSHOT_INSET);
-                    },
-                },
-                {
                     type: 'label',
                     props: {
                         id: 'memory_desc',
@@ -283,13 +246,19 @@ class MemoryListView {
     bottomReached(sender) {
         $(this.footerTextId).hidden = false;
         let newData = this.getNextPageData();
-        this.data = this.data.concat(newData);
-        $delay(0.5, () => {
+        if (newData.length) {
+            this.data = this.data.concat(newData);
+            // TODO: trigger image loading
+            this.updateListData();
+            $delay(0.5, () => {
+                $(this.footerTextId).hidden = true;
+                sender.endFetchingMore();
+            });
+        } else {
+            $ui.toast('已全部加载');
             $(this.footerTextId).hidden = true;
             sender.endFetchingMore();
-            sender.data = this.data;
-            // TODO: trigger image loading
-        });
+        }
     }
 
     async changeDescription(sender, indexPath, data) {
@@ -382,18 +351,99 @@ class MemoryListView {
         }); // Promise.then
     } // changeContent
 
+    updateListData() {
+        $(this.id).data = this.data;
+        const mListOc = $(this.id).ocValue();
+
+        for (let row = 0; row < this.data.length; row++) {
+            const item = this.data[row];
+            const {
+                id: idBeforeLoad,
+                snapshotLoaded,
+                memInfo: { sPath: path },
+            } = item;
+
+            if (snapshotLoaded) {
+                continue;
+            }
+
+            this.callBack.loadResource(path).then(
+                (_data) => {
+                    const idAfterLoad = this.data[row].id;
+                    if (
+                        idAfterLoad !== idBeforeLoad ||
+                        this.data[row].snapshotLoaded
+                    ) {
+                        return;
+                    }
+
+                    const snapshotOc = mListOc
+                        .$data()
+                        .$objectAtIndex(row)
+                        .$valueForKey('snapshot');
+                    snapshotOc.$removeObjectForKey('symbol');
+                    snapshotOc.$setValue_forKey(path, 'src');
+                    snapshotOc.$setValue_forKey(
+                        $contentMode.scaleToFill,
+                        'contentMode'
+                    );
+                    mListOc.$reloadData();
+
+                    delete item.snapshot.symbol;
+                    // item.snapshot.data = data;
+                    item.snapshot.src = path;
+                    item.snapshot.contentMode = $contentMode.scaleToFill;
+                    item.snapshotLoaded = true;
+                },
+                (err) => {
+                    const idAfterLoad = this.data[row].id;
+                    if (
+                        idAfterLoad !== idBeforeLoad ||
+                        this.data[row].snapshotLoaded
+                    ) {
+                        return;
+                    }
+
+                    console.error('Load snapshot failed.');
+                    console.error(err);
+
+                    const snapshotOc = mListOc
+                        .$data()
+                        .$objectAtIndex(row)
+                        .$valueForKey('snapshot');
+                    snapshotOc.$removeObjectForKey('src');
+                    snapshotOc.$setValue_forKey(
+                        'exclamationmark.icloud',
+                        'symbol'
+                    );
+                    snapshotOc.$setValue_forKey(
+                        $contentMode.center,
+                        'contentMode'
+                    );
+                    mListOc.$reloadData();
+
+                    // delete item.snapshot.data
+                    delete item.snapshot.src;
+                    item.snapshot.symbol = 'exclamationmark.icloud';
+                    item.snapshot.contentMode = $contentMode.center;
+                    item.snapshotLoaded = false;
+                }
+            );
+        }
+    }
+
     categorySwitched() {
         this.nextPage = 0;
         this.data = this.getNextPageData();
-
         // TODO: trigger image loading
-        $(this.id).data = this.data;
+        this.updateListData();
     }
 
     categoryRenamed(oldName, newName) {
         if (this.callBack.getCurrentCategory() == oldName) {
             for (const i in this.data) {
                 this.data[i].memInfo.category = newName;
+                // TODO: may have bug here
             }
         }
     }
@@ -422,10 +472,12 @@ class MemoryListView {
                 // for saving data
                 id: mem.id,
                 memInfo: mem.memInfo,
+                snapshotLoaded: false,
 
                 // for template
                 snapshot: {
-                    src: mem.memInfo.sPath,
+                    symbol: 'icloud',
+                    contentMode: $contentMode.center,
                 },
                 memory_desc: {
                     text: mem.memInfo.desc,
@@ -435,11 +487,6 @@ class MemoryListView {
                 },
                 detailed_info: {
                     text: mem.detailedInfo,
-                },
-
-                // TODO
-                load_indicator: {
-                    info: { path: 'test', m: () => console.log('12312') },
                 },
             });
         } // for
@@ -461,12 +508,12 @@ class MemoryListView {
     refreshMemoryList() {
         $(this.id).beginRefreshing();
         $(this.headerId).text = '刷新中...';
+        this.nextPage = 0;
+        this.data = this.getNextPageData();
+        // TODO: trigger image loading
+        this.updateListData();
         $delay(0.5, () => {
-            this.nextPage = 0;
-            this.data = this.getNextPageData();
-            // TODO: trigger image loading
             $(this.id).endRefreshing();
-            $(this.id).data = this.data;
             $(this.headerId).text = '所有记录';
         });
     }
