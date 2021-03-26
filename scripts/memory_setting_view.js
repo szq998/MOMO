@@ -31,34 +31,7 @@ class SwipeableContentView extends ContentView {
             make.centerX.equalTo(view.super.left);
         };
 
-        let placeholderView = {
-            type: 'view',
-            props: { id: this.placeholderViewId },
-            views: [
-                {
-                    type: 'image',
-                    props: {
-                        contentMode: $contentMode.scaleAspectFit,
-                        symbol: 'doc.richtext',
-                    },
-                    layout: (make, view) => {
-                        make.left.top.bottom.equalTo(view.super);
-                        make.width.equalTo(view.super).dividedBy(2);
-                    },
-                },
-                {
-                    type: 'image',
-                    props: {
-                        contentMode: $contentMode.scaleAspectFit,
-                        symbol: 'photo',
-                    },
-                    layout: (make, view) => {
-                        make.right.top.bottom.equalTo(view.super);
-                        make.width.equalTo(view.super).dividedBy(2);
-                    },
-                },
-            ],
-        };
+        let placeholderView = this.makePlaceholderView();
 
         this.setEvents('touchesBegan', (sender, location) => {
             if ($(this.placeholderViewId).hidden) return;
@@ -135,6 +108,63 @@ class SwipeableContentView extends ContentView {
             }
         });
         this.toRender.views.push(placeholderView);
+    }
+
+    makePlaceholderView() {
+        return {
+            type: 'view',
+            props: { id: this.placeholderViewId },
+            views: [
+                {
+                    type: 'image',
+                    props: {
+                        contentMode: $contentMode.scaleAspectFit,
+                        symbol: 'doc.richtext',
+                    },
+                    layout: (make, view) => {
+                        make.centerY.equalTo(view.super);
+                        make.centerX.equalTo(view.super).dividedBy(2);
+                        make.size.equalTo($size(100, 100));
+                    },
+                },
+                {
+                    type: 'image',
+                    props: {
+                        symbol: 'chevron.right',
+                        tintColor: $color('darkGray', 'lightGray'),
+                    },
+                    layout: (make, view) => {
+                        make.size.equalTo($size(15, 15));
+                        make.centerY.equalTo(view.super);
+                        make.centerX.equalTo(view.super).offset(-30);
+                    },
+                },
+                {
+                    type: 'image',
+                    props: {
+                        symbol: 'chevron.left',
+                        tintColor: $color('darkGray', 'lightGray'),
+                    },
+                    layout: (make, view) => {
+                        make.size.equalTo($size(15, 15));
+                        make.centerY.equalTo(view.super);
+                        make.centerX.equalTo(view.super).offset(30);
+                    },
+                },
+                {
+                    type: 'image',
+                    props: {
+                        contentMode: $contentMode.scaleAspectFit,
+                        symbol: 'photo',
+                    },
+                    layout: (make, view) => {
+                        make.centerY.equalTo(view.super);
+                        make.centerX.equalTo(view.super).multipliedBy(1.5);
+                        make.size.equalTo($size(100, 100));
+                    },
+                },
+            ],
+        };
     }
 
     clearContent(contentType = null) {
@@ -731,7 +761,7 @@ class MemorySettingView extends PopView {
             props: {
                 id: this.idsOfMSV.navBarView,
                 hidden: true,
-                alpha: 0
+                alpha: 0,
             },
             layout: $layout.fill,
             views: [this.getFinishButton(), this.getTypeSwitchTab()],
