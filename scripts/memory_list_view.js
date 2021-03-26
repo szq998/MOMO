@@ -1,3 +1,5 @@
+let { elegantlyFinishLoading } = require('./utilities.js');
+
 const SCREEN_HEIGHT = $device.info.screen.height;
 const SCREEN_WIDTH = $device.info.screen.width;
 const SNAPSHOT_WIDTH = 80;
@@ -645,27 +647,5 @@ class MemoryListView {
         });
     }
 } // class
-
-// make sure loading indicator will not flash
-function elegantlyFinishLoading(
-    scheduled,
-    appearTime,
-    leastDuration,
-    callBackWhenFinished,
-    callBackToStopLoading
-) {
-    if (appearTime) {
-        const lastingTime = Date.now() - appearTime;
-        const remainingTime =
-            leastDuration - lastingTime < 0 ? 0 : leastDuration - lastingTime;
-        setTimeout(() => {
-            callBackToStopLoading();
-            callBackWhenFinished();
-        }, remainingTime);
-    } else {
-        clearTimeout(scheduled);
-        callBackWhenFinished();
-    }
-}
 
 module.exports = MemoryListView;

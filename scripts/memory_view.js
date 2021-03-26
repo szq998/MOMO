@@ -1,4 +1,5 @@
 let ContentView = require('./content_view.js');
+let { elegantlyFinishLoading } = require('./utilities.js');
 
 const CONTENT_WIDTH = 400;
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3;
@@ -457,27 +458,5 @@ class MemoryView {
         });
     }
 } // class
-
-// make sure loading indicator will not flash
-function elegantlyFinishLoading(
-    scheduled,
-    appearTime,
-    leastDuration,
-    callBackWhenFinished,
-    callBackToStopLoading
-) {
-    if (appearTime) {
-        const lastingTime = Date.now() - appearTime;
-        const remainingTime =
-            leastDuration - lastingTime < 0 ? 0 : leastDuration - lastingTime;
-        setTimeout(() => {
-            callBackToStopLoading();
-            callBackWhenFinished();
-        }, remainingTime);
-    } else {
-        clearTimeout(scheduled);
-        callBackWhenFinished();
-    }
-}
 
 module.exports = MemoryView;

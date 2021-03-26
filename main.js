@@ -1,6 +1,8 @@
 const DB_PATH = './assets/memory.db'; //"shared://test.db"
 const MEMORY_RESOURCE_PATH = './assets/memory';
 
+let { elegantlyFinishLoading } = require('./scripts/utilities.js');
+
 $app.theme = 'auto';
 
 const MemoryDatabase = require('./scripts/memory_database.js');
@@ -279,19 +281,15 @@ function loadMemoryDB() {
                     .download(iCloudMetaPath)
                     .then((_) => {
                         // ensure indicator lasts more than 500ms, if it is shown
-                        if (
-                            indicatorStartTime &&
-                            Date.now() - indicatorStartTime < 500
-                        ) {
-                            setTimeout(() => {
+                        elegantlyFinishLoading(
+                            delayedLoadingIndicator,
+                            indicatorStartTime,
+                            500,
+                            () => {
                                 memoryDB = new MemoryDatabase(DB_PATH);
                                 resolve(memoryDB);
-                            }, 500 - (Date.now() - indicatorStartTime));
-                        } else {
-                            clearTimeout(delayedLoadingIndicator);
-                            memoryDB = new MemoryDatabase(DB_PATH);
-                            resolve(memoryDB);
-                        }
+                            }
+                        );
                     })
                     .catch((err) => {
                         console.error(
