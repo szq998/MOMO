@@ -8,7 +8,7 @@ const ContentType = {
 
 const SWIPE_THRESHOLD = 60;
 const MIN_DESC_LEN = 5;
-const CONTENT_WIDTH = 200;
+const CONTENT_WIDTH = 400;
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3;
 
 class SwipeableContentView extends ContentView {
@@ -385,9 +385,78 @@ class MemorySettingView extends PopView {
             navBarView: 'nav_bar_view_of_' + id,
             categoryPicker: 'category_picker_of_' + id,
             categoryPickingLabel: 'category_picking_label' + id,
+            scrollView: 'scroll_view_of_' + id,
+            scrollContainer: 'scroll_container_of_' + id,
         };
 
-        let descInput = {
+        this.questionSetter = new ContentSettingView(
+            this.idsOfMSV.questionSetter
+        );
+        this.answerSetter = new ContentSettingView(this.idsOfMSV.answerSetter);
+
+        const descInput = this.makeDescInput();
+
+        this.questionSetter.setLayout((make, view) => {
+            make.centerX.equalTo(view.super);
+            make.top.equalTo($(this.idsOfMSV.descInput).bottom).offset(40);
+
+            // make.width.equalTo(CONTENT_WIDTH);
+            // make.width.lessThanOrEqualTo(view.super.width).offset(-40);
+            make.width.equalTo(view.super);
+            make.height
+                .equalTo(view.width)
+                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
+        });
+
+        this.answerSetter.setLayout((make, view) => {
+            make.centerX.equalTo(view.super);
+            make.top.equalTo($(this.idsOfMSV.questionSetter).bottom).offset(40);
+
+            // make.width.equalTo(CONTENT_WIDTH);
+            // make.width.lessThanOrEqualTo(view.super.width).offset(-40);
+            make.width.equalTo(view.super);
+            make.height
+                .equalTo(view.width)
+                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
+        });
+
+        const categoryPicker = this.makeCategoryPicker();
+
+        const labels = this.makeLabels();
+
+        const viewsOfMemorySettingView = [
+            descInput,
+            //            contentTypeSwitch,
+            this.questionSetter.toRender,
+            this.answerSetter.toRender,
+            categoryPicker,
+
+            ...labels,
+            // descInputLabel,
+            // questionSettingLabel,
+            // answerSettingLabel,
+            // categoryPickingLabel,
+            //            finishButton
+        ];
+
+        const scrollView = this.makeScrollView(viewsOfMemorySettingView);
+
+        // this.addViews(viewsOfMemorySettingView);
+        this.addViews([scrollView]);
+
+        this.toRender.events['ready'] = (sender) => {
+            const lastType =
+                $cache.get('using') && $cache.get('using').lastType
+                    ? $cache.get('using').lastType
+                    : 0;
+
+            this.questionSetter.clearContent((lastType >> 0) & 1);
+            this.answerSetter.clearContent((lastType >> 1) & 1);
+        };
+    } // constructor
+
+    makeDescInput() {
+        return {
             type: 'text',
             props: {
                 id: this.idsOfMSV.descInput,
@@ -399,64 +468,16 @@ class MemorySettingView extends PopView {
                 ),
             }, // props
             layout: (make, view) => {
+                make.top.equalTo(view.super).offset(50);
                 make.centerX.equalTo(view.super);
-                make.centerY.equalTo(view.super).offset(-250);
-                make.size.equalTo($size(CONTENT_WIDTH, 45));
+                make.width.equalTo(view.super);
+                make.height.equalTo(45);
             },
         };
+    }
 
-        let descInputLabel = this.makeLabelView(
-            this.idsOfMSV.descInputLabel,
-            '描述',
-            (make, view) => {
-                make.leading.equalTo($(this.idsOfMSV.descInput).leading);
-                make.bottom.equalTo($(this.idsOfMSV.descInput).top).offset(-3);
-            }
-        );
-
-        this.questionSetter = new ContentSettingView(
-            this.idsOfMSV.questionSetter
-        );
-        this.questionSetter.setLayout((make, view) => {
-            make.centerX.equalTo(view.super);
-            make.top.equalTo($(this.idsOfMSV.descInput).bottom).offset(40);
-
-            make.width.equalTo(CONTENT_WIDTH);
-            make.height
-                .equalTo(view.width)
-                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
-        });
-
-        this.answerSetter = new ContentSettingView(this.idsOfMSV.answerSetter);
-        this.answerSetter.setLayout((make, view) => {
-            make.centerX.equalTo(view.super);
-            make.top.equalTo($(this.idsOfMSV.questionSetter).bottom).offset(40);
-
-            make.width.equalTo(CONTENT_WIDTH);
-            make.height
-                .equalTo(view.width)
-                .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
-        });
-
-        let questionSettingLabel = this.makeLabelView(
-            this.idsOfMSV.questionSettingLabel,
-            '问题',
-            (make, view) => {
-                make.leading.equalTo(view.prev.leading);
-                make.bottom.equalTo(view.prev.top).offset(-3);
-            }
-        );
-
-        let answerSettingLabel = this.makeLabelView(
-            this.idsOfMSV.answerSettingLabel,
-            '答案',
-            (make, view) => {
-                make.leading.equalTo(view.prev.leading);
-                make.bottom.equalTo(view.prev.top).offset(-3);
-            }
-        );
-
-        let categoryPicker = {
+    makeCategoryPicker() {
+        return {
             type: 'picker',
             props: {
                 id: this.idsOfMSV.categoryPicker,
@@ -470,11 +491,90 @@ class MemorySettingView extends PopView {
                 make.top
                     .equalTo($(this.idsOfMSV.answerSetter).bottom)
                     .offset(40);
-                make.size.equalTo($(this.idsOfMSV.answerSetter));
+
+                // make.width.equalTo(CONTENT_WIDTH);
+                // make.width.lessThanOrEqualTo(view.super.width).offset(-40);
+                make.width.equalTo(view.super);
+                make.height
+                    .equalTo(view.width)
+                    .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
             },
         };
+    }
 
-        let categoryPickingLabel = this.makeLabelView(
+    makeScrollView(views) {
+        return {
+            type: 'scroll',
+            props: {
+                id: this.idsOfMSV.scrollView,
+                contentSize: $size(0, 1500),
+            },
+            layout: (make, view) => {
+                make.top.bottom.centerX.equalTo(view.super);
+                make.width.equalTo(CONTENT_WIDTH + 10);
+                make.width.lessThanOrEqualTo(view.super.width).offset(-30);
+            },
+            events: {
+                layoutSubviews: (sender) => {
+                    const height =
+                        Math.min(CONTENT_WIDTH, sender.frame.width) *
+                        CONTENT_HEIGHT_WIDTH_RATIO *
+                        4;
+                    sender.contentSize = $size(0, height);
+
+                    $(this.idsOfMSV.scrollContainer).frame = $rect(
+                        10,
+                        0,
+                        sender.frame.width - 20,
+                        height
+                    );
+                },
+            },
+            views: [
+                {
+                    type: 'view',
+                    props: {
+                        id: this.idsOfMSV.scrollContainer,
+                    },
+                    views,
+                },
+            ],
+        };
+    }
+
+    makeLabels() {
+        const descInputLabel = this.makeLabelView(
+            this.idsOfMSV.descInputLabel,
+            '描述',
+            (make, view) => {
+                make.leading.equalTo($(this.idsOfMSV.descInput).leading);
+                make.bottom.equalTo($(this.idsOfMSV.descInput).top).offset(-3);
+            }
+        );
+
+        const questionSettingLabel = this.makeLabelView(
+            this.idsOfMSV.questionSettingLabel,
+            '问题',
+            (make, view) => {
+                make.leading.equalTo($(this.idsOfMSV.questionSetter).leading);
+                make.bottom
+                    .equalTo($(this.idsOfMSV.questionSetter).top)
+                    .offset(-3);
+            }
+        );
+
+        const answerSettingLabel = this.makeLabelView(
+            this.idsOfMSV.answerSettingLabel,
+            '答案',
+            (make, view) => {
+                make.leading.equalTo($(this.idsOfMSV.answerSetter).leading);
+                make.bottom
+                    .equalTo($(this.idsOfMSV.answerSetter).top)
+                    .offset(-3);
+            }
+        );
+
+        const categoryPickingLabel = this.makeLabelView(
             this.idsOfMSV.categoryPickingLabel,
             '类别',
             (make, view) => {
@@ -484,38 +584,15 @@ class MemorySettingView extends PopView {
                     .offset(-3);
             }
         );
-
-        let viewsOfMemorySettingView = [
-            descInput,
-            //            contentTypeSwitch,
+        return [
             descInputLabel,
-            this.questionSetter.toRender,
             questionSettingLabel,
-            this.answerSetter.toRender,
             answerSettingLabel,
-            categoryPicker,
             categoryPickingLabel,
-            //            finishButton
         ];
-
-        this.addViews(viewsOfMemorySettingView);
-
-        this.toRender.events['ready'] = (sender) => {
-            let lastType =
-                $cache.get('using') && $cache.get('using').lastType
-                    ? $cache.get('using').lastType
-                    : 0;
-
-            this.questionSetter.clearContent((lastType >> 0) & 1);
-            this.answerSetter.clearContent((lastType >> 1) & 1);
-        };
-    } // constructor
+    }
 
     appear() {
-        // let cpItems = this.callBack.getAllCategories()
-        // cpItems.push("新增类别")
-        // $(this.idsOfMSV.categoryPicker).items = [cpItems]
-
         $(this.idsOfMSV.navBarView).hidden = false;
         $ui.animate({
             animation: () => {
