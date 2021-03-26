@@ -37,6 +37,7 @@ class MemoryListView {
                 style: 2,
                 autoRowHeight: true,
                 estimatedRowHeight: this.estimatedRowHeight,
+                separatorInset: $insets(0, SNAPSHOT_WIDTH + SNAPSHOT_INSET * 3, 0, SNAPSHOT_INSET * 3),
                 data: this.data,
                 menu: this.makeMenu(),
                 header: this.makeHeader(),
