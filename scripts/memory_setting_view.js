@@ -382,6 +382,7 @@ class MemorySettingView extends PopView {
             answerSetter: 'answer_setter_of_' + id,
             answerSettingLabel: 'answer_setting_label_of_' + id,
             finishButton: 'finish_button_of_' + id,
+            abortButton: 'abort_button_of_' + id,
             navBarView: 'nav_bar_view_of_' + id,
             categoryPicker: 'category_picker_of_' + id,
             categoryPickingLabel: 'category_picking_label' + id,
@@ -805,8 +806,12 @@ class MemorySettingView extends PopView {
             events: {
                 changed: (sender) => {
                     $device.taptic(2);
-                    this.questionSetter.clearContent(sender.index);
-                    this.answerSetter.clearContent(sender.index);
+                    if (!this.questionSetter.content) {
+                        this.questionSetter.clearContent(sender.index);
+                    }
+                    if (!this.answerSetter.content) {
+                        this.answerSetter.clearContent(sender.index);
+                    }
                 },
             },
         };
@@ -817,16 +822,36 @@ class MemorySettingView extends PopView {
             type: 'button',
             props: {
                 id: this.idsOfMSV.finishButton,
-                title: '完成',
+                title: '保存',
                 bgcolor: $color('clear'),
             },
             layout: (make, view) => {
                 make.centerY.equalTo(0);
-                make.right.equalTo(0);
+                make.right.equalTo(-10);
             },
             events: {
                 tapped: (sender) => {
                     this.finishHandler();
+                },
+            }, // events
+        }; // finishButton
+    }
+
+    getAbortButton() {
+        return {
+            type: 'button',
+            props: {
+                id: this.idsOfMSV.abortButton,
+                title: '放弃',
+                bgcolor: $color('clear'),
+            },
+            layout: (make, view) => {
+                make.centerY.equalTo(0);
+                make.left.equalTo(10);
+            },
+            events: {
+                tapped: (sender) => {
+                    this.disappear();
                 },
             }, // events
         }; // finishButton
@@ -841,7 +866,11 @@ class MemorySettingView extends PopView {
                 alpha: 0,
             },
             layout: $layout.fill,
-            views: [this.getFinishButton(), this.getTypeSwitchTab()],
+            views: [
+                this.getFinishButton(),
+                this.getAbortButton(),
+                this.getTypeSwitchTab(),
+            ],
         };
     }
 } // class
