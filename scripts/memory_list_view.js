@@ -245,12 +245,45 @@ class MemoryListView {
                     props: {
                         id: 'time_info',
                         font: $font(14),
-                        // textColor: $color("darkGray")
                         textColor: $color('secondaryText'),
                     },
                     layout: (make, view) => {
                         make.leading.equalTo(view.prev.trailing).offset(4);
                         make.centerY.equalTo(view.prev);
+                    },
+                },
+
+                {
+                    type: 'label',
+                    props: {
+                        id: 'category',
+                        font: $font(14),
+                        textColor: $color('secondaryText'),
+                        // borderWidth: 1,
+                        // borderColor: $color('lightGray', 'darkGray'),
+                    },
+                    layout: (make, view) => {
+                        make.leading.equalTo(view.prev.trailing).offset(8);
+                        make.centerY.equalTo(view.prev);
+                    },
+                },
+                {
+                    type: 'blur',
+                    props: {
+                        id: 'category_bg',
+                        style: $blurStyle.ultraThinMaterial,
+                        cornerRadius: 3,
+                    },
+                    layout: (make, view) => {
+                        // make.size.equalTo(view.prev)
+                        make.height.equalTo(view.prev).offset(4);
+                        make.width.equalTo(view.prev).offset(10);
+                        make.center.equalTo(view.prev);
+                    },
+                    events: {
+                        ready: (sender) => {
+                            sender.moveToBack();
+                        },
                     },
                 },
             ],
@@ -281,25 +314,23 @@ class MemoryListView {
         }
     }
 
-    async changeDescription(sender, indexPath, data) {
-        let desc = await this.callBack.inputDescription(data.memInfo.desc);
+    async changeDescription(sender, indexPath, item) {
+        let desc = await this.callBack.inputDescription(item.memInfo.desc);
         if (desc) {
-            let newData = data;
-            newData.memInfo.desc = desc;
-            newData.memory_desc.text = desc;
-            this.data[indexPath.row] = newData;
-            this.callBack.changeDescriptionById(data.id, desc);
+            item.memInfo.desc = desc;
+            item.memory_desc.text = desc;
+            this.callBack.changeDescriptionById(item.id, desc);
 
             sender.delete(indexPath);
             sender.insert({
                 indexPath: indexPath,
-                value: newData,
+                value: item,
             });
         }
     }
 
-    async changeCategory(sender, indexPath, data) {
-        let oldCtgy = data.memInfo.category;
+    async changeCategory(sender, indexPath, item) {
+        let oldCtgy = item.memInfo.category;
         let allCtgy = this.callBack.getAllCategories();
         let index = allCtgy.indexOf(oldCtgy);
         allCtgy.unshift(allCtgy.splice(index, 1)[0]);
@@ -328,24 +359,32 @@ class MemoryListView {
                 $ui.warning('添加新类别失败，可能与已有类别名重复');
                 return;
             } else {
-                this.callBack.changeCategoryById(data.id, targetCtgy);
+                this.callBack.changeCategoryById(item.id, targetCtgy);
                 this.callBack.reloadCategory();
             }
         } else {
             targetCtgy = allCtgy[selectedIndex];
             // change to target category
-            this.callBack.changeCategoryById(data.id, targetCtgy);
+            this.callBack.changeCategoryById(item.id, targetCtgy);
         }
 
         let currListCtgy = this.callBack.getCurrentCategory();
         if (currListCtgy) {
             sender.delete(indexPath);
             this.data.splice(indexPath.row, 1);
-        } else this.data[indexPath.row].memInfo.category = targetCtgy;
+        } else {
+            item.memInfo.category = targetCtgy;
+            item.category.text = targetCtgy;
+            sender.delete(indexPath);
+            sender.insert({
+                indexPath: indexPath,
+                value: item,
+            });
+        }
         $ui.success('修改成功');
     }
 
-    changeContent(sender, indexPath, data) {
+    changeContent(sender, indexPath, item) {
         // schedule loading indicator
         this.loadNo++;
         this.callBack.disableInteraction();
@@ -362,7 +401,7 @@ class MemoryListView {
 
         this.callBack
             .changeContentById(
-                data.id,
+                item.id,
                 // called when files loaded, return value determine whether continue or not
                 () => {
                     if (currNo != this.loadNo) {
@@ -386,14 +425,14 @@ class MemoryListView {
                 (newMemInfo) => {
                     if (!newMemInfo) return;
 
-                    if (data.memInfo.category == newMemInfo.category) {
+                    if (item.memInfo.category === newMemInfo.category) {
                         // category not changed
-                        data.memInfo = newMemInfo;
-                        data.memory_desc.text = newMemInfo.desc;
+                        item.memInfo = newMemInfo;
+                        item.memory_desc.text = newMemInfo.desc;
                         // data.snapshot.src = newMemInfo.sPath;
-                        data.snapshotLoaded = false;
+                        item.snapshotLoaded = false;
 
-                        this.data[indexPath.row] = data;
+                        // this.data[indexPath.row] = data;
                         this.updateListData();
                         // sender.data = this.data;
                     } else {
@@ -404,9 +443,15 @@ class MemoryListView {
                         if (currCtgy) {
                             sender.delete(indexPath);
                             this.data.splice(indexPath.row, 1);
-                        } else
-                            this.data[indexPath.row].memInfo.category =
-                                newMemInfo.category;
+                        } else {
+                            item.memInfo.category = newMemInfo.category;
+                            item.category.text = newMemInfo.category;
+                            sender.delete(indexPath);
+                            sender.insert({
+                                indexPath: indexPath,
+                                value: item,
+                            });
+                        }
                     }
                 },
                 (err) => {
@@ -531,13 +576,15 @@ class MemoryListView {
             $color('#00ffff'),
             $color('#00ff00'),
         ];
-        let newMemory = this.callBack.getMemoryByPage(
+        const newMemory = this.callBack.getMemoryByPage(
             this.nextPage++,
             this.pageSize,
             this.callBack.getCurrentCategory()
         );
         if (!newMemory) this.nextPage--;
-        let newData = [];
+        const newData = [];
+
+        const showCategory = this.callBack.getCurrentCategory() ? false : true;
         for (const mem of newMemory) {
             newData.push({
                 // for saving data
@@ -558,6 +605,13 @@ class MemoryListView {
                 },
                 time_info: {
                     text: mem.timeInfo,
+                },
+                category: {
+                    hidden: showCategory ? false : true,
+                    text: mem.memInfo.category,
+                },
+                category_bg: {
+                    hidden: showCategory ? false : true,
                 },
             });
         } // for
