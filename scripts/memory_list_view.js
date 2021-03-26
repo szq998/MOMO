@@ -79,22 +79,22 @@ class MemoryListView {
                         {
                             title: '更改描述',
                             symbol: 'pencil.and.ellipsis.rectangle',
-                            handler: (sender, indexPath, data) => {
-                                this.changeDescription(sender, indexPath, data);
+                            handler: (sender, indexPath) => {
+                                this.changeDescription(sender, indexPath);
                             },
                         },
                         {
                             title: '更改类别',
                             symbol: 'tag',
-                            handler: (sender, indexPath, data) => {
-                                this.changeCategory(sender, indexPath, data);
+                            handler: (sender, indexPath) => {
+                                this.changeCategory(sender, indexPath);
                             }, // handler
                         },
                         {
                             title: '更改内容',
                             symbol: 'photo.on.rectangle',
-                            handler: (sender, indexPath, data) => {
-                                this.changeContent(sender, indexPath, data);
+                            handler: (sender, indexPath) => {
+                                this.changeContent(sender, indexPath);
                             }, // handler
                         },
                     ],
@@ -311,8 +311,10 @@ class MemoryListView {
         }
     }
 
-    async changeDescription(sender, indexPath, item) {
-        let desc = await this.callBack.inputDescription(item.memInfo.desc);
+    async changeDescription(sender, indexPath) {
+        // item is not an object in this.data
+        const item = this.data[indexPath.row]
+        const desc = await this.callBack.inputDescription(item.memInfo.desc);
         if (desc) {
             item.memInfo.desc = desc;
             item.memory_desc.text = desc;
@@ -326,10 +328,13 @@ class MemoryListView {
         }
     }
 
-    async changeCategory(sender, indexPath, item) {
-        let oldCtgy = item.memInfo.category;
-        let allCtgy = this.callBack.getAllCategories();
-        let index = allCtgy.indexOf(oldCtgy);
+    async changeCategory(sender, indexPath) {
+        // item is not an object in this.data
+        const item = this.data[indexPath.row]
+
+        const oldCtgy = item.memInfo.category;
+        const allCtgy = this.callBack.getAllCategories();
+        const index = allCtgy.indexOf(oldCtgy);
         allCtgy.unshift(allCtgy.splice(index, 1)[0]);
         allCtgy.push('新增类别');
 
@@ -365,8 +370,8 @@ class MemoryListView {
             this.callBack.changeCategoryById(item.id, targetCtgy);
         }
 
-        let currListCtgy = this.callBack.getCurrentCategory();
-        if (currListCtgy) {
+        const currCtgy = this.callBack.getCurrentCategory();
+        if (currCtgy) {
             sender.delete(indexPath);
             this.data.splice(indexPath.row, 1);
         } else {
@@ -381,7 +386,10 @@ class MemoryListView {
         $ui.success('修改成功');
     }
 
-    changeContent(sender, indexPath, item) {
+    changeContent(sender, indexPath) {
+        // item is not an object in this.data
+        const item = this.data[indexPath.row]
+
         // schedule loading indicator
         this.loadNo++;
         this.callBack.disableInteraction();
