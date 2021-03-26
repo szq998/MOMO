@@ -6,7 +6,7 @@ const ContentType = {
     image: 1,
 };
 
-const SWIPE_THRESHOLD = 60;
+const SWIPE_THRESHOLD = 30;
 const MIN_DESC_LEN = 5;
 const CONTENT_WIDTH = 400;
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3;
