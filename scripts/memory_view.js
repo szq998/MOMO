@@ -134,7 +134,7 @@ class MemoryView {
         this.toRender = {
             type: 'view',
             views: [buttonArea, memoryArea], // views
-            layout: $layout.fill,
+            layout: $layout.fillSafeArea,
             events: {
                 ready: (sender) => {
                     $(this.buttonAreaId).moveToFront();

@@ -92,7 +92,7 @@ class MainView {
                 buttonArea,
                 loadingIndicator,
             ],
-            layout: $layout.fill,
+            layout: $layout.fillSafeArea,
         };
     }
 
