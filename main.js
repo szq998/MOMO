@@ -231,7 +231,7 @@ function loadResource(path) {
             //     // console.log("loaded")
             // }, Math.random() * 2000);
         } else {
-            const iCloudMetaPath = getICloudMetaPath(DB_PATH);
+            const iCloudMetaPath = getICloudMetaPath(path);
             if (!$file.exists(iCloudMetaPath)) {
                 reject(new Error(`File at path "${path}" not found.`));
             }
