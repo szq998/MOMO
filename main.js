@@ -45,7 +45,7 @@ function main(memoryDB) {
             if (typeof currId == 'undefined') {
                 return Promise.resolve(undefined);
             } else {
-                return getContentAsync(currId, currType).then((content) => {
+                return getContent(currId, currType).then((content) => {
                     content.type = currType;
                     return content;
                 });
@@ -106,35 +106,44 @@ function main(memoryDB) {
         changeCategoryById: (id, newCtgy) => {
             memoryDB.updateCategoryById(id, newCtgy);
         },
-        changeContentById: (id) => {
-            let mem = memoryDB.getMemoryById(id);
-            let { question, answer } = getContent(id, mem.type);
-            let oldContent = {
-                type: mem.type,
-                desc: mem.description,
-                question: question,
-                answer: answer,
-                category: mem.category,
-            };
+        changeContentById: (id, isCancelled, loadingFinishHandler) => {
+            const mem = memoryDB.getMemoryById(id);
+            return getContent(id, mem.type)
+                .finally(loadingFinishHandler)
+                .then(({ question, answer }) => {
+                    if (isCancelled()) {
+                        return;
+                    }
 
-            return new Promise((resolve) => {
-                memorySettingView.editMemory(id, oldContent).then(() => {
-                    let newMem = memoryDB.getMemoryById(id);
-                    let { qPath, aPath, sPath } = getContentPath(
-                        id,
-                        newMem.type
-                    );
-                    let newInfo = {
-                        type: newMem.type,
-                        desc: newMem.description,
-                        qPath: qPath,
-                        aPath: aPath,
-                        sPath: sPath,
-                        category: newMem.category,
-                    };
-                    resolve(newInfo);
+                    return new Promise((resolve) => {
+                        const oldContent = {
+                            type: mem.type,
+                            desc: mem.description,
+                            question: question,
+                            answer: answer,
+                            category: mem.category,
+                        };
+
+                        memorySettingView
+                            .editMemory(id, oldContent)
+                            .then(() => {
+                                let newMem = memoryDB.getMemoryById(id);
+                                let { qPath, aPath, sPath } = getContentPath(
+                                    id,
+                                    newMem.type
+                                );
+                                let newInfo = {
+                                    type: newMem.type,
+                                    desc: newMem.description,
+                                    qPath: qPath,
+                                    aPath: aPath,
+                                    sPath: sPath,
+                                    category: newMem.category,
+                                };
+                                resolve(newInfo);
+                            });
+                    });
                 });
-            });
         },
         getMemoryByPage: (pageNo, pageSize, category) => {
             let memory = [];
@@ -213,12 +222,12 @@ function main(memoryDB) {
 function loadResource(path) {
     return new Promise((resolve, reject) => {
         if ($file.exists(path)) {
-            // resolve($file.read(path));
-            setTimeout(() => {
-                if (Math.random() < 0.8) resolve($file.read(path));
-                else reject('123');
-                // console.log("loaded")
-            }, Math.random() * 2000);
+            resolve($file.read(path));
+            // setTimeout(() => {
+            //     if (Math.random() < 0.8) resolve($file.read(path));
+            //     else reject('123');
+            //     // console.log("loaded")
+            // }, Math.random() * 2000);
         } else {
             const iCloudMetaPath = getICloudMetaPath(DB_PATH);
             if (!$file.exists(iCloudMetaPath)) {
@@ -321,15 +330,6 @@ function getContentPath(id, type) {
 }
 
 function getContent(id, type) {
-    let { qPath, aPath, sPath } = getContentPath(id, type);
-    return {
-        question: (type >> 0) & 1 ? $image(qPath) : $file.read(qPath).string, // TODO: async file
-        answer: (type >> 1) & 1 ? $image(aPath) : $file.read(aPath).string, // TODO: async file
-        snapshot: $image(sPath), // TODO: async file
-    };
-}
-
-function getContentAsync(id, type) {
     const { qPath, aPath, sPath } = getContentPath(id, type);
 
     return Promise.all([
@@ -374,15 +374,6 @@ function getRememberOrForgetCallback(memoryModel, action) {
         if (currDesc) {
             $ui.title = currDesc;
         }
-
-        // let currId = memoryModel.getCurrentId();
-        // let currType = memoryModel.getCurrentType();
-        // if (typeof currId == 'undefined') return undefined;
-        // else {
-        // let content = getContent(currId, currType);
-        // content.type = currType;
-        // return content;
-        // }
     };
 }
 

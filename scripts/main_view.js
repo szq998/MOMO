@@ -9,9 +9,12 @@ class MainView {
         this.id = id;
         this.callBack = callBack;
 
+        this.loadingCancelHandler = null;
+
         this.categoryMenuID = 'category_menu_of_' + this.id;
         this.memoryListID = 'memory_list_of_' + this.id;
         this.buttonAreaID = 'button_area_of_' + this.id;
+        this.loadingIndicatorID = 'loading_indicator_of_' + this.id;
 
         let callBackForCMV = {
             mergeCategory: callBack.mergeCategory,
@@ -34,6 +37,10 @@ class MainView {
             getAllCategories: callBack.getAllCategories,
             inputCategory: MainView.inputCategory,
             inputDescription: MainView.inputDescription,
+            showLoadingIndicator: this.showLoadingIndicator.bind(this),
+            hideLoadingIndicator: this.hideLoadingIndicator.bind(this),
+            enableInteraction: this.enableInteraction.bind(this),
+            disableInteraction: this.disableInteraction.bind(this),
         };
 
         this.categoryMenuView = new CategoryMenuView(
@@ -74,6 +81,8 @@ class MainView {
             make.bottom.left.right.inset(15);
         });
 
+        let loadingIndicator = this.makeLoadingIndicator();
+
         this.toRender = {
             type: 'view',
             props: { bgcolor: $color('#F2F1F6', 'primarySurface') },
@@ -81,6 +90,7 @@ class MainView {
                 this.categoryMenuView.toRender,
                 this.memoryListView.toRender,
                 buttonArea,
+                loadingIndicator,
             ],
             layout: $layout.fill,
         };
@@ -113,6 +123,66 @@ class MainView {
             props: { title: text },
             events: { tapped: callBack }, // events
         }; // returned view
+    }
+
+    makeLoadingIndicator() {
+        return {
+            type: 'blur',
+            props: {
+                id: this.loadingIndicatorID,
+                hidden: true,
+                cornerRadius: 8,
+                style: $blurStyle.ultraThinMaterial,
+            },
+            layout: (make, view) => {
+                make.center.equalTo(view.super);
+                make.size.equalTo($size(100, 100));
+            },
+            views: [
+                {
+                    type: 'spinner',
+                    props: {
+                        loading: true,
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super);
+                        make.centerY.equalTo(view.super).offset(-20);
+                    },
+                },
+                {
+                    type: 'label',
+                    props: {
+                        text: '加载中...',
+                        font: $font(12),
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super);
+                        make.top.equalTo(view.prev.bottom).offset(5);
+                    },
+                },
+                {
+                    type: 'button',
+                    props: {
+                        title: '取消',
+                        font: $font(12),
+                        type: 1,
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super);
+                        make.top.equalTo(view.prev.bottom).offset(5);
+                    },
+                    events: {
+                        tapped: () => {
+                            // hide self
+                            if (this.loadingCancelHandler) {
+                                this.loadingCancelHandler();
+                            }
+                            this.hideLoadingIndicator();
+                        },
+                    },
+                },
+            ],
+        };
     }
 
     static async inputCategory(oldCtgy = '') {
@@ -159,6 +229,30 @@ class MainView {
 
     refreshMemoryList() {
         this.memoryListView.refreshMemoryList();
+    }
+
+    showLoadingIndicator(cancelHandler) {
+        $(this.loadingIndicatorID).hidden = false;
+        if (cancelHandler) {
+            this.loadingCancelHandler = cancelHandler;
+        }
+    }
+
+    hideLoadingIndicator() {
+        $(this.loadingIndicatorID).hidden = true;
+        this.loadingCancelHandler = null;
+    }
+
+    disableInteraction() {
+        $(this.categoryMenuID).userInteractionEnabled = false;
+        $(this.memoryListID).userInteractionEnabled = false;
+        $(this.buttonAreaID).userInteractionEnabled = false;
+    }
+
+    enableInteraction() {
+        $(this.categoryMenuID).userInteractionEnabled = true;
+        $(this.memoryListID).userInteractionEnabled = true;
+        $(this.buttonAreaID).userInteractionEnabled = true;
     }
 } // class
 

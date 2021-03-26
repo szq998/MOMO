@@ -13,6 +13,8 @@ class MemoryListView {
     constructor(id, callBack, layout) {
         this.id = id;
         this.callBack = callBack;
+
+        this.loadNo = 0;
         this.nextPage = 0;
         this.data = [];
 
@@ -326,30 +328,77 @@ class MemoryListView {
     }
 
     changeContent(sender, indexPath, data) {
-        this.callBack.changeContentById(data.id).then((newMemInfo) => {
-            if (data.memInfo.category == newMemInfo.category) {
-                // category not changed
-                data.memInfo = newMemInfo;
-                data.memory_desc.text = newMemInfo.desc;
-                // data.snapshot.src = newMemInfo.sPath;
-                data.snapshotLoaded = false;
+        // schedule loading indicator
+        this.loadNo++;
+        this.callBack.disableInteraction();
+        let loadingStartTime = null;
+        const scheduledLoadingIndicator = setTimeout(() => {
+            this.callBack.showLoadingIndicator(() => {
+                this.loadNo++;
+                this.callBack.enableInteraction();
+            }); //Todo
+            loadingStartTime = Date.now();
+        }, 500);
 
-                this.data[indexPath.row] = data;
-                this.updateListData();
-                // sender.data = this.data;
-            } else {
-                // category also changed
-                this.callBack.reloadCategory();
+        const currNo = this.loadNo;
 
-                let currCtgy = this.callBack.getCurrentCategory();
-                if (currCtgy) {
-                    sender.delete(indexPath);
-                    this.data.splice(indexPath.row, 1);
-                } else
-                    this.data[indexPath.row].memInfo.category =
-                        newMemInfo.category;
-            }
-        }); // Promise.then
+        this.callBack
+            .changeContentById(
+                data.id,
+                // called when files loaded, return value determine whether continue or not
+                () => {
+                    if (currNo != this.loadNo) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                },
+                // called when file loading function finished
+                () => {
+                    elegantlyFinishLoading(
+                        scheduledLoadingIndicator,
+                        loadingStartTime,
+                        500,
+                        this.callBack.enableInteraction,
+                        this.callBack.hideLoadingIndicator
+                    );
+                }
+            )
+            .then(
+                (newMemInfo) => {
+                    if (!newMemInfo) return;
+
+                    if (data.memInfo.category == newMemInfo.category) {
+                        // category not changed
+                        data.memInfo = newMemInfo;
+                        data.memory_desc.text = newMemInfo.desc;
+                        // data.snapshot.src = newMemInfo.sPath;
+                        data.snapshotLoaded = false;
+
+                        this.data[indexPath.row] = data;
+                        this.updateListData();
+                        // sender.data = this.data;
+                    } else {
+                        // category also changed
+                        this.callBack.reloadCategory();
+
+                        let currCtgy = this.callBack.getCurrentCategory();
+                        if (currCtgy) {
+                            sender.delete(indexPath);
+                            this.data.splice(indexPath.row, 1);
+                        } else
+                            this.data[indexPath.row].memInfo.category =
+                                newMemInfo.category;
+                    }
+                },
+                (err) => {
+                    if(currNo !== this.loadNo)
+
+                    console.error('Failed to load memory resources.');
+                    console.error(err);
+                    $ui.error('修改失败，请检查网络');
+                }
+            ); // Promise.then
     } // changeContent
 
     updateListData() {
@@ -499,31 +548,73 @@ class MemoryListView {
     } // loadNextPage
 
     quickLook(contentType, path) {
-        //TODO: prevent interaction while loading
-        $ui.loading(true);
+        // schedule loading indicator
+        this.loadNo++;
+        this.callBack.disableInteraction();
+        let loadingStartTime = null;
+        const scheduledLoadingIndicator = setTimeout(() => {
+            this.callBack.showLoadingIndicator(() => {
+                this.loadNo++;
+                this.callBack.enableInteraction();
+            }); //Todo
+            loadingStartTime = Date.now();
+        }, 500);
+
+        const currNo = this.loadNo;
         this.callBack
             .loadResource(path)
             .then(
                 (data) => {
-                    if (contentType == ContentType.image) {
-                        $quicklook.open({
-                            url:
-                                'file://' +
-                                $file.absolutePath(path).replace(' ', '%20'), // no space char
-                        });
-                    } else if (contentType == ContentType.markdown) {
-                        let md = data.string;
-                        let html = $text.markdownToHtml(md);
-                        $quicklook.open({ html: html });
-                    } else console.error('Error: unsupported content type.');
+                    if (currNo !== this.loadNo) return;
+
+                    elegantlyFinishLoading(
+                        scheduledLoadingIndicator,
+                        loadingStartTime,
+                        500,
+                        () => {
+                            if (contentType == ContentType.image) {
+                                $quicklook.open({
+                                    url:
+                                        'file://' +
+                                        $file
+                                            .absolutePath(path)
+                                            .replace(' ', '%20'), // no space char
+                                });
+                            } else if (contentType == ContentType.markdown) {
+                                let md = data.string;
+                                let html = $text.markdownToHtml(md);
+                                $quicklook.open({ html: html });
+                            } else
+                                console.error(
+                                    'Error: unsupported content type.'
+                                );
+                        },
+                        this.callBack.hideLoadingIndicator
+                    ); // Todo
                 },
                 (err) => {
-                    console.log(`Failed to preview content of path "${path}".`);
+                    if (currNo !== this.loadNo) return;
+
+                    console.error(
+                        `Failed to preview content of path "${path}".`
+                    );
                     console.error(err);
+
+                    elegantlyFinishLoading(
+                        scheduledLoadingIndicator,
+                        loadingStartTime,
+                        500,
+                        () => {
+                            $ui.error('查看失败，请检查网络');
+                        },
+                        this.callBack.hideLoadingIndicator
+                    );
                 }
             )
             .finally(() => {
-                $ui.loading(false);
+                if (currNo !== this.loadNo) return;
+
+                this.callBack.enableInteraction();
             });
     } // quicklook
 
@@ -539,5 +630,27 @@ class MemoryListView {
         });
     }
 } // class
+
+// make sure loading indicator will not flash
+function elegantlyFinishLoading(
+    scheduled,
+    appearTime,
+    leastDuration,
+    callBackWhenFinished,
+    callBackToStopLoading
+) {
+    if (appearTime) {
+        const lastingTime = Date.now() - appearTime;
+        const remainingTime =
+            leastDuration - lastingTime < 0 ? 0 : leastDuration - lastingTime;
+        setTimeout(() => {
+            callBackToStopLoading();
+            callBackWhenFinished();
+        }, remainingTime);
+    } else {
+        clearTimeout(scheduled);
+        callBackWhenFinished();
+    }
+}
 
 module.exports = MemoryListView;
