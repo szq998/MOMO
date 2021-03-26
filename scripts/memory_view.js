@@ -382,10 +382,10 @@ class MemoryView {
             loadingStartTime = Date.now();
         }, 200);
 
-        const currCount = this.loadNo;
+        const currNo = this.loadNo;
         this.callBack.getContent().then(
             (mem) => {
-                if (currCount !== this.loadNo) return;
+                if (currNo !== this.loadNo) return;
 
                 elegantlyFinishLoading(
                     scheduledLoadingIndicator,
@@ -396,7 +396,7 @@ class MemoryView {
                 );
             },
             (err) => {
-                if (currCount !== this.loadNo) return;
+                if (currNo !== this.loadNo) return;
 
                 console.error('Failed to get memory resources.');
                 console.error(err);
