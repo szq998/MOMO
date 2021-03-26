@@ -86,15 +86,15 @@ class PopView {
                     );
                     // show self is going to close indicator
                     let rootHeight = $(this.id).size.height;
-                    let closeThres = rootHeight > 150 ? 150 : rootHeight;
-                    if (yOffset > closeThres) {
+                    let closeThreshold = rootHeight > 150 ? 150 : rootHeight;
+                    if (yOffset > closeThreshold) {
                         this.showCloseIndicator();
                         let indicator = $(this.closeId);
                         let f = indicator.frame;
 
                         indicator.frame = $rect(
                             f.x,
-                            35 + (yOffset - closeThres) / 3,
+                            35 + (yOffset - closeThreshold) / 3,
                             f.width,
                             f.height
                         );
@@ -104,7 +104,7 @@ class PopView {
                 },
                 touchesEnded: (sender, location) => {
                     let rootHeight = $(this.id).size.height;
-                    let closeThres = rootHeight > 150 ? 150 : rootHeight;
+                    let closeThreshold = rootHeight > 150 ? 150 : rootHeight;
 
                     let target = $(this.innerViewId);
 
@@ -112,7 +112,7 @@ class PopView {
                     let tSpan = new Date() - target.info.whenTouchBegins;
                     let speed = (yOffset / tSpan) * 1000;
 
-                    if (yOffset > closeThres) {
+                    if (yOffset > closeThreshold) {
                         // disappear
                         this.disappear();
 
@@ -167,7 +167,7 @@ class PopView {
     addViews(views) {
         if ($(this.id)) {
             // not implemented
-            $ui.error('Adding views dynamicly is not implemented!');
+            $ui.error('Adding views dynamically is not implemented!');
         } else {
             for (const v of views) {
                 this.innerIds.push(v.props.id);
