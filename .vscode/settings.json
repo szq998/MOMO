@@ -12,6 +12,7 @@
         "quicklook",
         "relayout",
         "richtext",
+        "subviews",
         "taptic"
     ]
 }
