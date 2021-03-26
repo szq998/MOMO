@@ -389,7 +389,7 @@ class MemoryListView {
             this.callBack.showLoadingIndicator(() => {
                 this.loadNo++;
                 this.callBack.enableInteraction();
-            }); //Todo
+            });
             loadingStartTime = Date.now();
         }, 500);
 
@@ -625,7 +625,7 @@ class MemoryListView {
             this.callBack.showLoadingIndicator(() => {
                 this.loadNo++;
                 this.callBack.enableInteraction();
-            }); //Todo
+            });
             loadingStartTime = Date.now();
         }, 500);
 
@@ -659,7 +659,7 @@ class MemoryListView {
                                 );
                         },
                         this.callBack.hideLoadingIndicator
-                    ); // Todo
+                    );
                 },
                 (err) => {
                     if (currNo !== this.loadNo) return;

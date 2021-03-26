@@ -2,11 +2,11 @@ const NEWLY_ADDED_TIME = 0;
 
 class MemoryDatabase {
     constructor(dbPath) {
-        this.db = $sqlite.open(dbPath); // TODO: async file
+        this.db = $sqlite.open(dbPath);
     }
 
     static createMemoryDatabase(dbPath) {
-        let db = $sqlite.open(dbPath); // TODO: async file
+        let db = $sqlite.open(dbPath);
         db.update(
             `CREATE TABLE Memory(
             id integer primary key, 
