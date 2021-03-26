@@ -135,7 +135,8 @@ class MainView {
                 style: $blurStyle.ultraThinMaterial,
             },
             layout: (make, view) => {
-                make.center.equalTo(view.super);
+                make.centerX.equalTo(view.super);
+                make.centerY.equalTo(view.super).offset(-40);
                 make.size.equalTo($size(100, 100));
             },
             views: [
