@@ -92,6 +92,18 @@ class MemoryModel {
         this.currLItem = nextLItem;
     } // remember
 
+    skip() {
+        console.log(this.getCurrentId() + ' skipped');
+
+        const nextLItem = this.memoryList.deleteItem(this.currLItem);
+        if (nextLItem == undefined) {
+            // finish
+            console.log('all remembered');
+            this.callBack.finish();
+        }
+        this.currLItem = nextLItem;
+    }
+
     forget() {
         console.log(
             this.getCurrentId() +

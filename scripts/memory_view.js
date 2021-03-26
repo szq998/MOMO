@@ -114,14 +114,39 @@ class AnswerView extends MovableContentView {
 
 class MemoryView {
     constructor(id, callBack) {
+        this.callBack = callBack;
+
         this.revealed = false;
+        this.loadNo = 0;
 
         this.qViewId = 'qv';
         this.aViewId = 'av';
         this.questionView = new QuestionView(this.qViewId);
         this.answerView = new AnswerView(this.aViewId);
-        this.buttonAreaId = 'button_area' + id;
+        this.buttonAreaId = 'button_area_of_' + id;
+        this.loadingIndicatorId = 'loading_indicator_' + id;
 
+        this.setCardTouchEvents();
+
+        let buttonArea = this.makeButtonArea();
+        let memoryArea = this.makeMemoryArea();
+
+        this.toRender = {
+            type: 'view',
+            views: [buttonArea, memoryArea], // views
+            layout: $layout.fill,
+            events: {
+                ready: (sender) => {
+                    $(this.buttonAreaId).moveToFront();
+
+                    callBack.ready();
+                    this.tryNext();
+                },
+            },
+        }; // toRender
+    } // constructor
+
+    setCardTouchEvents() {
         this.questionView.setEvents('touchesBegan', (sender, location) => {
             if (!this.revealed)
                 sender.info = {
@@ -197,8 +222,86 @@ class MemoryView {
                 } // if - else
             } // if revealed
         }); // touchesEnded
+    }
 
-        let buttonArea = {
+    makeLoadingIndicator() {
+        return {
+            type: 'blur',
+            props: {
+                id: this.loadingIndicatorId,
+                hidden: true,
+                cornerRadius: 8,
+                style: $blurStyle.ultraThinMaterial,
+            },
+            layout: (make, view) => {
+                make.center.equalTo(view.super);
+                make.size.equalTo($size(100, 100));
+            },
+            views: [
+                {
+                    type: 'spinner',
+                    props: {
+                        loading: true,
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super);
+                        make.centerY.equalTo(view.super).offset(-20);
+                    },
+                },
+                {
+                    type: 'label',
+                    props: {
+                        text: '加载中...',
+                        font: $font(12),
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super);
+                        make.top.equalTo(view.prev.bottom).offset(5);
+                    },
+                },
+                {
+                    type: 'button',
+                    props: {
+                        title: '跳过',
+                        font: $font(12),
+                        type: 1,
+                    },
+                    layout: (make, view) => {
+                        make.centerX.equalTo(view.super);
+                        make.top.equalTo(view.prev.bottom).offset(5);
+                    },
+                    events: {
+                        tapped: () => {
+                            this.loadNo++;
+                            this.skip();
+                            // hide self
+                            this.hideLoadingIndicator();
+                        },
+                    },
+                },
+            ],
+        };
+    }
+
+    makeMemoryArea() {
+        let loadingIndicator = this.makeLoadingIndicator();
+
+        return {
+            type: 'view',
+            views: [
+                this.answerView.toRender,
+                this.questionView.toRender,
+                loadingIndicator,
+            ],
+            layout: (make, view) => {
+                make.top.left.right.equalTo(view.super);
+                make.bottom.equalTo(view.prev.top);
+            },
+        }; // memoryArea
+    }
+
+    makeButtonArea() {
+        return {
             type: 'stack',
             props: {
                 id: this.buttonAreaId,
@@ -214,12 +317,12 @@ class MemoryView {
                         this.makeRememberForgetButton(
                             '103',
                             $color('green'),
-                            callBack.remember
+                            this.callBack.remember
                         ),
                         this.makeRememberForgetButton(
                             '119',
                             $color('yellow'),
-                            callBack.forget
+                            this.callBack.forget
                         ),
                     ], // views
                 }, // stack
@@ -229,28 +332,7 @@ class MemoryView {
                 make.bottom.left.right.inset(10);
             }, // layout
         }; // buttonArea
-
-        let memoryArea = {
-            type: 'view',
-            views: [this.answerView.toRender, this.questionView.toRender],
-            layout: (make, view) => {
-                make.top.left.right.equalTo(view.super);
-                make.bottom.equalTo(view.prev.top);
-            },
-        }; // memoryArea
-
-        this.toRender = {
-            type: 'view',
-            views: [buttonArea, memoryArea], // views
-            layout: $layout.fill,
-            events: {
-                ready: (sender) => {
-                    $(this.buttonAreaId).moveToFront();
-                    this.resetAndNext(callBack.ready());
-                },
-            },
-        }; // toRender
-    } // constructor
+    }
 
     makeRememberForgetButton(icon_num, icon_color, callBack) {
         return {
@@ -260,7 +342,8 @@ class MemoryView {
             },
             events: {
                 tapped: () => {
-                    this.resetAndNext(callBack());
+                    callBack();
+                    this.tryNext();
                 }, // tapped
             }, // events
         }; // returned view
@@ -276,16 +359,57 @@ class MemoryView {
         $(this.buttonAreaId).alpha = 0.5;
     }
 
-    resetAndNext(mem) {
-        if (!mem) return;
-
-        this.disableButtonArea();
-        this.revealed = false;
-
+    showNextContent(mem) {
         let { type, question, answer } = mem;
         this.questionView.reset();
         this.questionView.changeContent((type >> 0) & 1, question);
         this.answerView.resetAndChangeContent((type >> 1) & 1, answer);
+    }
+
+    skip() {
+        this.callBack.skip();
+        this.tryNext();
+    }
+
+    tryNext() {
+        this.disableButtonArea();
+        this.revealed = false;
+
+        // schedule loading indicator
+        let loadingStartTime = null;
+        const scheduledLoadingIndicator = setTimeout(() => {
+            this.showLoadingIndicator();
+            loadingStartTime = Date.now();
+        }, 200);
+
+        const currCount = this.loadNo;
+        this.callBack.getContent().then(
+            (mem) => {
+                if (currCount !== this.loadNo) return;
+
+                elegantlyFinishLoading(
+                    scheduledLoadingIndicator,
+                    loadingStartTime,
+                    500,
+                    this.showNextContent.bind(this, mem),
+                    this.hideLoadingIndicator.bind(this)
+                );
+            },
+            (err) => {
+                if (currCount !== this.loadNo) return;
+
+                console.error('Failed to get memory resources.');
+                console.error(err);
+
+                elegantlyFinishLoading(
+                    scheduledLoadingIndicator,
+                    loadingStartTime,
+                    500,
+                    this.showLoadingFailedAlert.bind(this),
+                    this.hideLoadingIndicator.bind(this)
+                );
+            }
+        );
     }
 
     revealAnswer() {
@@ -295,6 +419,65 @@ class MemoryView {
         this.questionView.moveUp();
         this.answerView.moveDown();
     }
+
+    showLoadingIndicator() {
+        $(this.loadingIndicatorId).hidden = false;
+    }
+
+    hideLoadingIndicator() {
+        $(this.loadingIndicatorId).hidden = true;
+    }
+
+    showLoadingFailedAlert() {
+        $ui.alert({
+            title: '加载失败',
+            message: '无法从iCloud下载资源，检查你的网络连接。',
+            actions: [
+                {
+                    title: '重试',
+                    style: $alertActionType.default, // Optional
+                    handler: () => {
+                        this.tryNext();
+                    },
+                },
+                {
+                    title: '跳过',
+                    handler: () => {
+                        this.skip();
+                    },
+                },
+                {
+                    title: '结束',
+                    style: $alertActionType.destructive, // Optional
+                    handler: () => {
+                        $ui.pop();
+                    },
+                },
+            ],
+        });
+    }
 } // class
+
+// make sure loading indicator will not flash
+function elegantlyFinishLoading(
+    scheduled,
+    appearTime,
+    leastDuration,
+    callBackWhenFinished,
+    callBackToStopLoading
+) {
+    if (appearTime) {
+        const lastingTime = Date.now() - appearTime;
+        const remainingTime =
+            leastDuration - lastingTime < 0 ? 0 : leastDuration - lastingTime;
+        setTimeout(() => {
+            callBackToStopLoading();
+            callBackWhenFinished();
+        }, remainingTime);
+    } else {
+        clearTimeout(scheduled);
+        callBackWhenFinished();
+    }
+}
 
 module.exports = MemoryView;

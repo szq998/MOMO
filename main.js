@@ -37,14 +37,29 @@ function main(memoryDB) {
     const mvCallBack = {
         remember: getRememberOrForgetCallback(memoryModel, 'r'),
         forget: getRememberOrForgetCallback(memoryModel, 'f'),
+        skip: getRememberOrForgetCallback(memoryModel, 's'),
+        getContent: () => {
+            const currId = memoryModel.getCurrentId();
+            const currType = memoryModel.getCurrentType();
+
+            if (typeof currId == 'undefined') {
+                return Promise.resolve(undefined);
+            } else {
+                return getContentAsync(currId, currType).then((content) => {
+                    content.type = currType;
+                    return content;
+                });
+            }
+        },
         ready: () => {
             $ui.title = memoryModel.getCurrentDescription();
-            let currId = memoryModel.getCurrentId();
-            let currType = memoryModel.getCurrentType();
-            let content = getContent(currId, currType);
+            // let currId = memoryModel.getCurrentId();
+            // let currType = memoryModel.getCurrentType();
 
-            content.type = currType;
-            return content;
+            // let content = getContent(currId, currType);
+
+            // content.type = currType;
+            // return content;
         },
     };
     const memoryView = new MemoryView('memory_view', mvCallBack);
@@ -198,12 +213,12 @@ function main(memoryDB) {
 function loadResource(path) {
     return new Promise((resolve, reject) => {
         if ($file.exists(path)) {
-                // resolve($file.read(path));
+            // resolve($file.read(path));
             setTimeout(() => {
-                resolve($file.read(path));
-                // reject("123")
+                if (Math.random() < 0.8) resolve($file.read(path));
+                else reject('123');
                 // console.log("loaded")
-            }, Math.random() * 5000);
+            }, Math.random() * 2000);
         } else {
             const iCloudMetaPath = getICloudMetaPath(DB_PATH);
             if (!$file.exists(iCloudMetaPath)) {
@@ -314,6 +329,22 @@ function getContent(id, type) {
     };
 }
 
+function getContentAsync(id, type) {
+    const { qPath, aPath, sPath } = getContentPath(id, type);
+
+    return Promise.all([
+        loadResource(qPath),
+        loadResource(aPath),
+        loadResource(sPath),
+    ]).then(([qData, aData, _sData]) => {
+        return {
+            question: (type >> 0) & 1 ? $image(qPath) : qData.string,
+            answer: (type >> 1) & 1 ? $image(aPath) : aData.string,
+            snapshot: $image(sPath),
+        };
+    });
+}
+
 function saveContent(id, content) {
     let cDir = getContentDir(id);
     $file.mkdir(cDir);
@@ -333,22 +364,25 @@ function saveContent(id, content) {
     });
 }
 
-function getRememberOrForgetCallback(memoryModel, rOrF) {
+function getRememberOrForgetCallback(memoryModel, action) {
     return () => {
-        if (rOrF == 'r') memoryModel.remember();
-        else if (rOrF == 'f') memoryModel.forget();
+        if (action === 'r') memoryModel.remember();
+        else if (action === 'f') memoryModel.forget();
+        else if (action === 's') memoryModel.skip();
 
         let currDesc = memoryModel.getCurrentDescription();
-        $ui.title = currDesc ? currDesc : $ui.title;
-
-        let currId = memoryModel.getCurrentId();
-        let currType = memoryModel.getCurrentType();
-        if (typeof currId == 'undefined') return undefined;
-        else {
-            let content = getContent(currId, currType);
-            content.type = currType;
-            return content;
+        if (currDesc) {
+            $ui.title = currDesc;
         }
+
+        // let currId = memoryModel.getCurrentId();
+        // let currType = memoryModel.getCurrentType();
+        // if (typeof currId == 'undefined') return undefined;
+        // else {
+        // let content = getContent(currId, currType);
+        // content.type = currType;
+        // return content;
+        // }
     };
 }
 
