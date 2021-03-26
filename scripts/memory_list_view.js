@@ -337,7 +337,7 @@ class MemoryListView {
         allCtgy.push('新增类别');
 
         let selectedIndex = 0;
-        await $picker.data({
+        const selected = await $picker.data({
             props: { items: [allCtgy] },
             events: {
                 changed: (sender) => {
@@ -347,7 +347,7 @@ class MemoryListView {
         });
 
         // category (==0) not changed or undefined
-        if (!selectedIndex) return;
+        if (!selected || !selectedIndex) return;
 
         let targetCtgy;
         if (selectedIndex == allCtgy.length - 1) {
