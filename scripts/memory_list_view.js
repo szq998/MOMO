@@ -243,7 +243,7 @@ class MemoryListView {
                 {
                     type: 'label',
                     props: {
-                        id: 'detailed_info',
+                        id: 'time_info',
                         font: $font(14),
                         // textColor: $color("darkGray")
                         textColor: $color('secondaryText'),
@@ -556,8 +556,8 @@ class MemoryListView {
                 degree_indicator: {
                     bgcolor: DEGREE_COLORS[mem.degree],
                 },
-                detailed_info: {
-                    text: mem.detailedInfo,
+                time_info: {
+                    text: mem.timeInfo,
                 },
             });
         } // for

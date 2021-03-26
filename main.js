@@ -1,7 +1,7 @@
 const DB_PATH = './assets/memory.db'; //"shared://test.db"
 const MEMORY_RESOURCE_PATH = './assets/memory';
 
-let { elegantlyFinishLoading } = require('./scripts/utilities.js');
+let { elegantlyFinishLoading, getTimeInfo } = require('./scripts/utilities.js');
 
 $app.theme = 'auto';
 
@@ -156,17 +156,19 @@ function main(memoryDB) {
             );
 
             return memory.map((m) => {
-                let { qPath, aPath, sPath } = getContentPath(m.id, m.type);
-                let lastDay = m.time == 0 ? undefined : getDaysAgo(m.time);
+                const { qPath, aPath, sPath } = getContentPath(m.id, m.type);
 
-                let detail = '';
-                if (m.time == 0) detail += '新添加';
-                else if (lastDay == 0) detail += '今天';
-                else if (lastDay == 1) detail += '昨天';
-                else detail += lastDay + '天前';
-                detail += m.time && !m.remembered ? ' 忘记' : '';
+                // let daysAgo = m.time == 0 ? undefined : getDaysAgo(m.time);
+                // let timeInfo = '';
+                // if (m.time == 0) timeInfo += '新添加';
+                // else if (daysAgo == 0) timeInfo += '今天';
+                // else if (daysAgo == 1) timeInfo += '昨天';
+                // else timeInfo += daysAgo + '天前';
+                // timeInfo += m.time && !m.remembered ? ' 忘记' : '';
 
-                let memInfo = {
+                const timeInfo = getTimeInfo(m.time)
+
+                const memInfo = {
                     type: m.type,
                     desc: m.description,
                     category: m.category,
@@ -178,7 +180,7 @@ function main(memoryDB) {
                     id: m.id,
                     memInfo: memInfo,
                     degree: m.degree,
-                    detailedInfo: detail,
+                    timeInfo: timeInfo,
                 };
             });
         },
@@ -308,11 +310,11 @@ function getICloudMetaPath(path) {
     });
 }
 
-function getDaysAgo(lts0) {
-    let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime();
-    let ts1 = new Date(new Date().toLocaleDateString()).getTime();
-    return parseInt((ts1 - ts0) / (1000 * 24 * 60 * 60));
-}
+// function getDaysAgo(lts0) {
+//     let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime();
+//     let ts1 = new Date(new Date().toLocaleDateString()).getTime();
+//     return parseInt((ts1 - ts0) / (1000 * 24 * 60 * 60));
+// }
 
 function getContentDir(id) {
     return MEMORY_RESOURCE_PATH + '/' + id;
