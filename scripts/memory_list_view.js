@@ -54,10 +54,10 @@ class MemoryListView {
                 }, // didReachBottom
                 didSelect: (sender, indexPath, data) => {
                     // TODO: change quicklook functionality to select memory
-                    this.quickLook(
-                        (data.memInfo.type >> 0) & 1,
-                        data.memInfo.qPath
-                    );
+                    // this.quickLook(
+                    //     (data.memInfo.type >> 0) & 1,
+                    //     data.memInfo.qPath
+                    // );
                 }, // didSelected
             }, // events
             layout: layout,
@@ -97,15 +97,31 @@ class MemoryListView {
                     ],
                 },
                 {
-                    title: '查看答案',
-                    symbol: 'lock.open',
-                    destructive: true,
-                    handler: (sender, indexPath, data) => {
-                        this.quickLook(
-                            (data.memInfo.type >> 1) & 1,
-                            data.memInfo.aPath
-                        );
-                    },
+                    title: '查看',
+                    symbol: 'magnifyingglass',
+                    inline: true,
+                    items: [
+                        {
+                            title: '查看问题',
+                            symbol: 'q.circle',
+                            handler: (sender, indexPath, data) => {
+                                this.quickLook(
+                                    (data.memInfo.type >> 0) & 1,
+                                    data.memInfo.qPath
+                                );
+                            },
+                        },
+                        {
+                            title: '查看答案',
+                            symbol: 'a.circle',
+                            handler: (sender, indexPath, data) => {
+                                this.quickLook(
+                                    (data.memInfo.type >> 1) & 1,
+                                    data.memInfo.aPath
+                                );
+                            },
+                        },
+                    ],
                 },
             ], // items
         }; // menu
@@ -392,9 +408,8 @@ class MemoryListView {
                     }
                 },
                 (err) => {
-                    if(currNo !== this.loadNo)
-
-                    console.error('Failed to load memory resources.');
+                    if (currNo !== this.loadNo)
+                        console.error('Failed to load memory resources.');
                     console.error(err);
                     $ui.error('修改失败，请检查网络');
                 }
