@@ -134,8 +134,9 @@ class MemoryListView {
             type: 'label',
             props: {
                 id: this.headerId,
+                hidden: true,
                 height: 20,
-                text: '所有记录',
+                text: '加载中...',
                 textColor: $color('#AAAAAA'),
                 align: $align.center,
                 font: $font(12),
@@ -158,7 +159,7 @@ class MemoryListView {
                     type: 'label',
                     props: {
                         id: this.footerTextId,
-                        text: '加载中...',
+                        text: '没有更多了',
                         textColor: $color('#AAAAAA'),
                         align: $align.center,
                         font: $font(12),
@@ -298,19 +299,14 @@ class MemoryListView {
 
     // callBacks
     bottomReached(sender) {
-        $(this.footerTextId).hidden = false;
+        sender.endFetchingMore();
+
         let newData = this.getNextPageData();
         if (newData.length) {
             this.data = this.data.concat(newData);
             this.updateListData();
-            $delay(0.5, () => {
-                $(this.footerTextId).hidden = true;
-                sender.endFetchingMore();
-            });
         } else {
-            $ui.toast('已全部加载');
-            $(this.footerTextId).hidden = true;
-            sender.endFetchingMore();
+            $(this.footerTextId).hidden = false;
         }
     }
 
@@ -545,6 +541,8 @@ class MemoryListView {
     }
 
     categorySwitched() {
+        $(this.footerTextId).hidden = true;
+
         this.nextPage = 0;
         this.data = this.getNextPageData();
         this.updateListData();
@@ -690,14 +688,18 @@ class MemoryListView {
     } // quicklook
 
     refreshMemoryList() {
+        $(this.footerTextId).hidden = true;
+
         $(this.id).beginRefreshing();
-        $(this.headerId).text = '刷新中...';
+        // $(this.headerId).text = '刷新中...';
+        $(this.headerId).hidden = false;
         this.nextPage = 0;
         this.data = this.getNextPageData();
         this.updateListData();
         $delay(0.5, () => {
             $(this.id).endRefreshing();
-            $(this.headerId).text = '所有记录';
+            // $(this.headerId).text = '所有记录';
+            $(this.headerId).hidden = true;
         });
     }
 } // class
