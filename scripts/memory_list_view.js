@@ -37,7 +37,12 @@ class MemoryListView {
                 style: 2,
                 autoRowHeight: true,
                 estimatedRowHeight: this.estimatedRowHeight,
-                separatorInset: $insets(0, SNAPSHOT_WIDTH + SNAPSHOT_INSET * 3, 0, SNAPSHOT_INSET * 3),
+                separatorInset: $insets(
+                    0,
+                    SNAPSHOT_WIDTH + SNAPSHOT_INSET * 3,
+                    0,
+                    SNAPSHOT_INSET * 3
+                ),
                 data: this.data,
                 menu: this.makeMenu(),
                 header: this.makeHeader(),
@@ -313,7 +318,7 @@ class MemoryListView {
 
     async changeDescription(sender, indexPath) {
         // item is not an object in this.data
-        const item = this.data[indexPath.row]
+        const item = this.data[indexPath.row];
         const desc = await this.callBack.inputDescription(item.memInfo.desc);
         if (desc) {
             item.memInfo.desc = desc;
@@ -330,7 +335,7 @@ class MemoryListView {
 
     async changeCategory(sender, indexPath) {
         // item is not an object in this.data
-        const item = this.data[indexPath.row]
+        const item = this.data[indexPath.row];
 
         const oldCtgy = item.memInfo.category;
         const allCtgy = this.callBack.getAllCategories();
@@ -388,7 +393,7 @@ class MemoryListView {
 
     changeContent(sender, indexPath) {
         // item is not an object in this.data
-        const item = this.data[indexPath.row]
+        const item = this.data[indexPath.row];
 
         // schedule loading indicator
         this.loadNo++;
@@ -468,6 +473,14 @@ class MemoryListView {
             ); // Promise.then
     } // changeContent
 
+    getIndexPathsForVisibleRows() {
+        return $(this.id)
+            .ocValue()
+            .$indexPathsForVisibleRows()
+            .jsValue()
+            .map((v) => v.row);
+    }
+
     updateListData() {
         $(this.id).data = this.data;
 
@@ -504,7 +517,12 @@ class MemoryListView {
                         $contentMode.scaleToFill,
                         'contentMode'
                     );
-                    mListOc.$reloadData();
+
+                    const visibleRows = this.getIndexPathsForVisibleRows();
+                    if (visibleRows.findIndex((v) => v === row) > -1) {
+                        // reload only currently visible
+                        mListOc.$reloadData();
+                    }
 
                     delete item.snapshot.symbol;
                     // item.snapshot.data = data;
@@ -537,7 +555,12 @@ class MemoryListView {
                         $contentMode.center,
                         'contentMode'
                     );
-                    mListOc.$reloadData();
+
+                    const visibleRows = this.getIndexPathsForVisibleRows();
+                    if (visibleRows.findIndex((v) => v === row) > -1) {
+                        // reload only currently visible
+                        mListOc.$reloadData();
+                    }
 
                     // delete item.snapshot.data
                     delete item.snapshot.src;
