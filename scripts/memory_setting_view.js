@@ -245,27 +245,33 @@ class ContentSettingView extends SwipeableContentView {
         else console.error('Error: unsupported content type.');
     } // contentSettingHandler
 
-    imageSettingHandler() {
-        let image;
-        let cbImageData = $clipboard.image;
+    async imageSettingHandler() {
+        let image = null;
+        const cbImageData = $clipboard.image;
         if (cbImageData) {
-            image = cbImageData.image;
-
-            this.changeContent(ContentType.image, image);
-            // notify
+            ({ image } = cbImageData);
             $ui.toast('获取到剪贴板中的照片，已清理剪贴板');
             // clear clipboard
             $clipboard.clear();
         } else {
-            $photo.prompt({
-                handler: (resp) => {
-                    image = resp.image;
-                    if (image) {
-                        this.changeContent(ContentType.image, image);
-                    }
-                },
+            const { index } = await $ui.menu({
+                items: ['从相册中选取', '从文件中选取', '拍摄照片'],
             });
+            switch (index) {
+                case 0:
+                    ({ image } = await $photo.pick());
+                    break;
+                case 1:
+                    ({ image } = await $drive.open({
+                        types: ['public.image'],
+                    }));
+                    break;
+                case 2:
+                    ({ image } = await $photo.take());
+                    break;
+            }
         } // if cbImageData
+        if (image) this.changeContent(ContentType.image, image);
     }
 
     markdownSettingHandler(sender) {
