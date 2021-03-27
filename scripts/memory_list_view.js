@@ -506,7 +506,7 @@ class MemoryListView {
         const visibleRows = this.getIndexPathsForVisibleRows();
         if (visibleRows.findIndex((v) => v === row) > -1) {
             // reload only currently visible
-            mListOc.$reloadData();
+            mListOc.$reloadRowsAtIndexPaths_withRowAnimation([$indexPath(0, row)], 5)
         }
 
         // set data in JSBox
@@ -530,7 +530,7 @@ class MemoryListView {
         const visibleRows = this.getIndexPathsForVisibleRows();
         if (visibleRows.findIndex((v) => v === row) > -1) {
             // reload only currently visible
-            mListOc.$reloadData();
+            mListOc.$reloadRowsAtIndexPaths_withRowAnimation([$indexPath(0, row)], 5)
         }
 
         // set data in JSBox
