@@ -481,17 +481,76 @@ class MemoryListView {
             .map((v) => v.row);
     }
 
-    updateListData() {
-        $(this.id).data = this.data;
+    isSnapshotValidAfterLoaded(idBeforeLoad, row) {
+        const item = this.data[row];
+        if (!item) return false;
 
+        const { id: idAfterLoad, snapshotLoaded } = item;
+        if (idAfterLoad === idBeforeLoad || !snapshotLoaded) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    loadSnapshotSuccessfully(mListOc, row, path) {
+        // set data in runtime 
+        const snapshotOc = mListOc
+            .$data()
+            .$objectAtIndex(row)
+            .$valueForKey('snapshot');
+        snapshotOc.$removeObjectForKey('symbol');
+        snapshotOc.$setValue_forKey(path, 'src');
+        snapshotOc.$setValue_forKey($contentMode.scaleToFill, 'contentMode');
+
+        const visibleRows = this.getIndexPathsForVisibleRows();
+        if (visibleRows.findIndex((v) => v === row) > -1) {
+            // reload only currently visible
+            mListOc.$reloadData();
+        }
+
+        // set data in JSBox
+        const item = this.data[row];
+        delete item.snapshot.symbol;
+        item.snapshot.src = path;
+        item.snapshot.contentMode = $contentMode.scaleToFill;
+        item.snapshotLoaded = true;
+    }
+
+    loadSnapshotFailed(mListOc, row) {
+        // set data in runtime 
+        const snapshotOc = mListOc
+            .$data()
+            .$objectAtIndex(row)
+            .$valueForKey('snapshot');
+        snapshotOc.$removeObjectForKey('src');
+        snapshotOc.$setValue_forKey('exclamationmark.icloud', 'symbol');
+        snapshotOc.$setValue_forKey($contentMode.center, 'contentMode');
+
+        const visibleRows = this.getIndexPathsForVisibleRows();
+        if (visibleRows.findIndex((v) => v === row) > -1) {
+            // reload only currently visible
+            mListOc.$reloadData();
+        }
+
+        // set data in JSBox
+        delete item.snapshot.src;
+        item.snapshot.symbol = 'exclamationmark.icloud';
+        item.snapshot.contentMode = $contentMode.center;
+        item.snapshotLoaded = false;
+    }
+
+    updateListData() {
+        // update list data
+        $(this.id).data = this.data;
+        // async snapshot loading
         const mListOc = $(this.id).ocValue();
         for (let row = 0; row < this.data.length; row++) {
-            const item = this.data[row];
             const {
                 id: idBeforeLoad,
                 snapshotLoaded,
                 memInfo: { sPath: path },
-            } = item;
+            } = this.data[row];
 
             if (snapshotLoaded) {
                 continue;
@@ -499,74 +558,17 @@ class MemoryListView {
 
             this.callBack.loadResource(path).then(
                 (_data) => {
-                    const idAfterLoad = this.data[row].id;
-                    if (
-                        idAfterLoad !== idBeforeLoad ||
-                        this.data[row].snapshotLoaded
-                    ) {
-                        return;
+                    if (this.isSnapshotValidAfterLoaded(idBeforeLoad, row)) {
+                        this.loadSnapshotSuccessfully(mListOc, row, path);
                     }
-
-                    const snapshotOc = mListOc
-                        .$data()
-                        .$objectAtIndex(row)
-                        .$valueForKey('snapshot');
-                    snapshotOc.$removeObjectForKey('symbol');
-                    snapshotOc.$setValue_forKey(path, 'src');
-                    snapshotOc.$setValue_forKey(
-                        $contentMode.scaleToFill,
-                        'contentMode'
-                    );
-
-                    const visibleRows = this.getIndexPathsForVisibleRows();
-                    if (visibleRows.findIndex((v) => v === row) > -1) {
-                        // reload only currently visible
-                        mListOc.$reloadData();
-                    }
-
-                    delete item.snapshot.symbol;
-                    // item.snapshot.data = data;
-                    item.snapshot.src = path;
-                    item.snapshot.contentMode = $contentMode.scaleToFill;
-                    item.snapshotLoaded = true;
                 },
                 (err) => {
-                    const idAfterLoad = this.data[row].id;
-                    if (
-                        idAfterLoad !== idBeforeLoad ||
-                        this.data[row].snapshotLoaded
-                    ) {
-                        return;
+                    if (this.isSnapshotValidAfterLoaded(idBeforeLoad, row)) {
+                        console.error('Load snapshot failed.');
+                        console.error(err);
+
+                        this.loadSnapshotFailed(mListOc, row);
                     }
-
-                    console.error('Load snapshot failed.');
-                    console.error(err);
-
-                    const snapshotOc = mListOc
-                        .$data()
-                        .$objectAtIndex(row)
-                        .$valueForKey('snapshot');
-                    snapshotOc.$removeObjectForKey('src');
-                    snapshotOc.$setValue_forKey(
-                        'exclamationmark.icloud',
-                        'symbol'
-                    );
-                    snapshotOc.$setValue_forKey(
-                        $contentMode.center,
-                        'contentMode'
-                    );
-
-                    const visibleRows = this.getIndexPathsForVisibleRows();
-                    if (visibleRows.findIndex((v) => v === row) > -1) {
-                        // reload only currently visible
-                        mListOc.$reloadData();
-                    }
-
-                    // delete item.snapshot.data
-                    delete item.snapshot.src;
-                    item.snapshot.symbol = 'exclamationmark.icloud';
-                    item.snapshot.contentMode = $contentMode.center;
-                    item.snapshotLoaded = false;
                 }
             );
         }
