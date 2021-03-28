@@ -551,7 +551,7 @@ class MemorySettingView extends PopView {
                     const height =
                         Math.min(CONTENT_WIDTH, sender.frame.width) *
                         CONTENT_HEIGHT_WIDTH_RATIO *
-                        4;
+                        3 + 220;
                     sender.contentSize = $size(0, height);
 
                     $(this.idsOfMSV.scrollContainer).frame = $rect(
@@ -869,6 +869,7 @@ class MemorySettingView extends PopView {
     }
 
     resetContent() {
+        $(this.idsOfMSV.scrollView).scrollToOffset($point(0, 0))
         $(this.idsOfMSV.descInput).text = '';
 
         this.questionSetter.clearContent();
