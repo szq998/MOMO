@@ -12,16 +12,16 @@ const ContentType = {
 };
 
 class MemoryListView {
+    loadNo = 0;
+    nextPage = 0;
+    data = [];
+    estimatedRowHeight =
+        SNAPSHOT_WIDTH * CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET;
+
     constructor(id, callBack, layout) {
         this.id = id;
         this.callBack = callBack;
 
-        this.loadNo = 0;
-        this.nextPage = 0;
-        this.data = [];
-
-        this.estimatedRowHeight =
-            SNAPSHOT_WIDTH * CONTENT_HEIGHT_WIDTH_RATIO + 2 * SNAPSHOT_INSET;
         this.pageSize = this.estimatePageSize();
         console.log('row height', this.estimatedRowHeight);
         console.log('page size is ' + this.pageSize);
@@ -51,22 +51,15 @@ class MemoryListView {
                 actions: this.makeActions(),
             }, // props
             events: {
-                ready: (sender) => {
+                ready: () => {
                     this.categorySwitched();
                 },
-                pulled: (sender) => {
+                pulled: () => {
                     this.refreshMemoryList();
                 },
                 didReachBottom: (sender) => {
                     this.bottomReached(sender);
                 }, // didReachBottom
-                didSelect: (sender, indexPath, data) => {
-                    // TODO: change quicklook functionality to select memory
-                    // this.quickLook(
-                    //     (data.memInfo.type >> 0) & 1,
-                    //     data.memInfo.qPath
-                    // );
-                }, // didSelected
             }, // events
             layout: layout,
         }; // toRender
@@ -112,20 +105,22 @@ class MemoryListView {
                         {
                             title: '查看问题',
                             symbol: 'q.circle',
-                            handler: (sender, indexPath, data) => {
+                            handler: (_sender, indexPath) => {
+                                const item = this.data[indexPath.row];
                                 this.quickLook(
-                                    (data.memInfo.type >> 0) & 1,
-                                    data.memInfo.qPath
+                                    (item.type >> 0) & 1,
+                                    item.qPath
                                 );
                             },
                         },
                         {
                             title: '查看答案',
                             symbol: 'a.circle',
-                            handler: (sender, indexPath, data) => {
+                            handler: (_sender, indexPath) => {
+                                const item = this.data[indexPath.row];
                                 this.quickLook(
-                                    (data.memInfo.type >> 1) & 1,
-                                    data.memInfo.aPath
+                                    (item.type >> 1) & 1,
+                                    item.aPath
                                 );
                             },
                         },
@@ -189,7 +184,7 @@ class MemoryListView {
                 handler: (sender, indexPath) => {
                     $ui.menu({
                         items: ['确认删除'],
-                        handler: (title, idx) => {
+                        handler: () => {
                             let deleted = this.data.splice(indexPath.row, 1)[0];
                             let id = deleted.id;
                             sender.delete(indexPath);
@@ -314,20 +309,15 @@ class MemoryListView {
         }
     }
 
-    async changeDescription(sender, indexPath) {
+    async changeDescription(_sender, indexPath) {
         // item is not an object in this.data
         const item = this.data[indexPath.row];
-        const desc = await this.callBack.inputDescription(item.memInfo.desc);
+        const desc = await this.callBack.inputDescription(item.desc);
         if (desc) {
-            item.memInfo.desc = desc;
-            item.memory_desc.text = desc;
             this.callBack.changeDescriptionById(item.id, desc);
 
-            sender.delete(indexPath);
-            sender.insert({
-                indexPath: indexPath,
-                value: item,
-            });
+            item.desc = desc;
+            this.updateListData();
         }
     }
 
@@ -335,7 +325,7 @@ class MemoryListView {
         // item is not an object in this.data
         const item = this.data[indexPath.row];
 
-        const oldCtgy = item.memInfo.category;
+        const oldCtgy = item.category;
         const allCtgy = this.callBack.getAllCategories();
         const index = allCtgy.indexOf(oldCtgy);
         allCtgy.unshift(allCtgy.splice(index, 1)[0]);
@@ -354,6 +344,7 @@ class MemoryListView {
         // category (==0) not changed or undefined
         if (!selected || !selectedIndex) return;
 
+        // update database
         let targetCtgy;
         if (selectedIndex == allCtgy.length - 1) {
             // add new category
@@ -373,18 +364,14 @@ class MemoryListView {
             this.callBack.changeCategoryById(item.id, targetCtgy);
         }
 
+        // update list data
         const currCtgy = this.callBack.getCurrentCategory();
         if (currCtgy) {
             sender.delete(indexPath);
             this.data.splice(indexPath.row, 1);
         } else {
-            item.memInfo.category = targetCtgy;
-            item.category.text = targetCtgy;
-            sender.delete(indexPath);
-            sender.insert({
-                indexPath: indexPath,
-                value: item,
-            });
+            item.category = targetCtgy;
+            this.updateListData();
         }
         $ui.success('修改成功');
     }
@@ -399,6 +386,7 @@ class MemoryListView {
         let loadingStartTime = null;
         const scheduledLoadingIndicator = setTimeout(() => {
             this.callBack.showLoadingIndicator(() => {
+                // called when loading canceled
                 this.loadNo++;
                 this.callBack.enableInteraction();
             });
@@ -410,15 +398,17 @@ class MemoryListView {
         this.callBack
             .changeContentById(
                 item.id,
-                // called when files loaded, return value determine whether continue or not
+                // called when files successfully loaded, return value determine whether continue or not
                 () => {
                     if (currNo != this.loadNo) {
+                        // be canceled while loading files
                         return true;
                     } else {
                         return false;
                     }
                 },
-                // called when file loading function finished
+                // called both after successful/unsuccessful file loading
+                // to hide loading indicator and enable interaction
                 () => {
                     elegantlyFinishLoading(
                         scheduledLoadingIndicator,
@@ -433,38 +423,26 @@ class MemoryListView {
                 (newMemInfo) => {
                     if (!newMemInfo) return;
 
-                    if (item.memInfo.category === newMemInfo.category) {
-                        // category not changed
-                        item.memInfo = newMemInfo;
-                        item.memory_desc.text = newMemInfo.desc;
-                        // data.snapshot.src = newMemInfo.sPath;
-                        item.snapshotLoaded = false;
+                    const oldCtgy = this.callBack.getCurrentCategory();
 
-                        // this.data[indexPath.row] = data;
-                        this.updateListData();
-                        // sender.data = this.data;
-                    } else {
-                        // category also changed
+                    if (item.category !== newMemInfo.category && oldCtgy) {
+                        // category changed, delete from list
                         this.callBack.reloadCategory();
 
-                        let currCtgy = this.callBack.getCurrentCategory();
-                        if (currCtgy) {
-                            sender.delete(indexPath);
-                            this.data.splice(indexPath.row, 1);
-                        } else {
-                            item.memInfo.category = newMemInfo.category;
-                            item.category.text = newMemInfo.category;
-                            sender.delete(indexPath);
-                            sender.insert({
-                                indexPath: indexPath,
-                                value: item,
-                            });
-                        }
+                        sender.delete(indexPath);
+                        this.data.splice(indexPath.row, 1);
+                    } else {
+                        // modify data
+                        Object.assign(item, newMemInfo);
+                        item.snapshotLoaded = false;
+
+                        this.updateListData();
                     }
                 },
                 (err) => {
-                    if (currNo !== this.loadNo)
-                        console.error('Failed to load memory resources.');
+                    if (currNo !== this.loadNo) return;
+
+                    console.error('Failed to load memory resources.');
                     console.error(err);
                     $ui.error('修改失败，请检查网络');
                 }
@@ -512,9 +490,6 @@ class MemoryListView {
 
         // set data in JSBox
         const item = this.data[row];
-        delete item.snapshot.symbol;
-        item.snapshot.src = path;
-        item.snapshot.contentMode = $contentMode.scaleToFill;
         item.snapshotLoaded = true;
     }
 
@@ -538,23 +513,51 @@ class MemoryListView {
         }
 
         // set data in JSBox
-        delete item.snapshot.src;
-        item.snapshot.symbol = 'exclamationmark.icloud';
-        item.snapshot.contentMode = $contentMode.center;
+        const item = this.data[row];
         item.snapshotLoaded = false;
     }
 
     updateListData() {
         // update list data
-        $(this.id).data = this.data;
+        const showCategory = this.callBack.getCurrentCategory() ? false : true;
+        $(this.id).data = this.data.map((mem) => {
+            const { snapshotLoaded } = mem;
+            const snapshot = snapshotLoaded
+                ? {
+                      src: mem.sPath,
+                      contentMode: $contentMode.scaleToFill,
+                  }
+                : {
+                      symbol: 'icloud',
+                      contentMode: $contentMode.center,
+                  };
+
+            return {
+                snapshot,
+                memory_desc: {
+                    text: mem.desc,
+                },
+                degree_indicator: {
+                    bgcolor: MemoryListView.DEGREE_COLORS[mem.degree],
+                },
+                time_info: {
+                    text: mem.timeInfo,
+                },
+                category: {
+                    hidden: showCategory ? false : true,
+                    text: mem.category,
+                },
+                category_bg: {
+                    hidden: showCategory ? false : true,
+                },
+            };
+        });
         // async snapshot loading
         const mListOc = $(this.id).ocValue();
         for (let row = 0; row < this.data.length; row++) {
-            const {
-                id: idBeforeLoad,
-                snapshotLoaded,
-                memInfo: { sPath: path },
-            } = this.data[row];
+            const { id: idBeforeLoad, snapshotLoaded, sPath: path } = this.data[
+                row
+            ];
 
             if (snapshotLoaded) {
                 continue;
@@ -587,71 +590,36 @@ class MemoryListView {
     }
 
     categoryRenamed(oldName, newName) {
-        if (this.callBack.getCurrentCategory() == oldName) {
+        const currCtgy = this.callBack.getCurrentCategory();
+        if (!currCtgy) {
             for (const item of this.data) {
-                item.memInfo.category = newName;
-            }
-        } else if (this.callBack.getCurrentCategory() === null) {
-            for (const item of this.data) {
-                if (item.memInfo.category === oldName) {
-                    item.memInfo.category = newName;
+                if (item.category === oldName) {
+                    item.category = newName;
                 }
+            }
+            this.updateListData();
+        } else if (currCtgy === oldName) {
+            for (const item of this.data) {
+                item.category = newName;
             }
         }
     }
 
     // methods
     getNextPageData() {
-        const DEGREE_COLORS = [
-            $color('#ff0000'),
-            $color('#ff0077'),
-            $color('#ff00ff'),
-            $color('#7700ff'),
-            $color('#0000ff'),
-            $color('#00ccff'),
-            $color('#00ffff'),
-            $color('#00ff00'),
-        ];
-        const newMemory = this.callBack.getMemoryByPage(
-            this.nextPage++,
+        const mems = this.callBack.getMemoryByPage(
+            this.nextPage,
             this.pageSize,
             this.callBack.getCurrentCategory()
         );
-        if (!newMemory) this.nextPage--;
-        const newData = [];
+        if (mems.length) {
+            this.nextPage++;
+        }
 
-        const showCategory = this.callBack.getCurrentCategory() ? false : true;
-        for (const mem of newMemory) {
-            newData.push({
-                // for saving data
-                id: mem.id,
-                memInfo: mem.memInfo,
-                snapshotLoaded: false,
-
-                // for template
-                snapshot: {
-                    symbol: 'icloud',
-                    contentMode: $contentMode.center,
-                },
-                memory_desc: {
-                    text: mem.memInfo.desc,
-                },
-                degree_indicator: {
-                    bgcolor: DEGREE_COLORS[mem.degree],
-                },
-                time_info: {
-                    text: mem.timeInfo,
-                },
-                category: {
-                    hidden: showCategory ? false : true,
-                    text: mem.memInfo.category,
-                },
-                category_bg: {
-                    hidden: showCategory ? false : true,
-                },
-            });
-        } // for
-        return newData;
+        return mems.map((mem) => {
+            mem.snapshotLoaded = false;
+            return mem;
+        });
     } // loadNextPage
 
     quickLook(contentType, path) {
@@ -741,5 +709,16 @@ class MemoryListView {
         });
     }
 } // class
+
+MemoryListView.DEGREE_COLORS = [
+    $color('#ff0000'),
+    $color('#ff0077'),
+    $color('#ff00ff'),
+    $color('#7700ff'),
+    $color('#0000ff'),
+    $color('#00ccff'),
+    $color('#00ffff'),
+    $color('#00ff00'),
+];
 
 module.exports = MemoryListView;
