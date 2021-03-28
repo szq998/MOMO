@@ -158,30 +158,17 @@ function main(memoryDB) {
             return memory.map((m) => {
                 const { qPath, aPath, sPath } = getContentPath(m.id, m.type);
 
-                // let daysAgo = m.time == 0 ? undefined : getDaysAgo(m.time);
-                // let timeInfo = '';
-                // if (m.time == 0) timeInfo += '新添加';
-                // else if (daysAgo == 0) timeInfo += '今天';
-                // else if (daysAgo == 1) timeInfo += '昨天';
-                // else timeInfo += daysAgo + '天前';
-                // timeInfo += m.time && !m.remembered ? ' 忘记' : '';
-
-                const timeInfo = getTimeInfo(m.time)
-
-                const memInfo = {
+                return {
+                    id: m.id,
                     type: m.type,
-                    desc: m.description,
                     category: m.category,
+                    desc: m.description,
+                    degree: m.degree,
+                    timeInfo: getTimeInfo(m.time),
                     qPath: qPath,
                     aPath: aPath,
                     sPath: sPath,
-                };
-                return {
-                    id: m.id,
-                    memInfo: memInfo,
-                    degree: m.degree,
-                    timeInfo: timeInfo,
-                };
+                }
             });
         },
     };
