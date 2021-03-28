@@ -201,23 +201,6 @@ class MemoryListView {
             props: { bgcolor: $color('secondarySurface') },
             views: [
                 {
-                    type: 'image',
-                    props: {
-                        id: 'snapshot',
-                        cornerRadius: 5,
-                        borderWidth: 1,
-                        borderColor: $color('lightGray', 'darkGray'),
-                    },
-                    layout: (make, view) => {
-                        make.width.equalTo(SNAPSHOT_WIDTH);
-                        make.height
-                            .equalTo(view.width)
-                            .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
-
-                        make.top.left.bottom.inset(SNAPSHOT_INSET);
-                    },
-                },
-                {
                     type: 'label',
                     props: {
                         id: 'memory_desc',
@@ -226,8 +209,10 @@ class MemoryListView {
                         textColor: $color('primaryText'),
                     },
                     layout: (make, view) => {
-                        make.leading.equalTo(view.prev.trailing).offset(8);
-                        make.top.equalTo(view.prev).offset(3);
+                        make.leading
+                            .equalTo(view.super)
+                            .offset(SNAPSHOT_WIDTH + 2 * SNAPSHOT_INSET + 5);
+                        make.top.equalTo(view.super).offset(3 + SNAPSHOT_INSET);
                     },
                 },
                 {
@@ -239,7 +224,9 @@ class MemoryListView {
                     layout: (make, view) => {
                         make.size.equalTo($size(10, 10));
                         make.leading.equalTo(view.prev);
-                        make.bottom.equalTo(view.prev.prev).offset(-10);
+                        make.bottom
+                            .equalTo(view.super)
+                            .offset(-SNAPSHOT_INSET - 8);
                     },
                 },
                 {
@@ -255,35 +242,51 @@ class MemoryListView {
                     },
                 },
                 {
+                    type: 'label',
+                    props: {
+                        id: 'category_text',
+                        cornerRadius: 3,
+                        font: $font(11),
+                        textColor: $color('secondaryText'),
+                    },
+                    layout: (make, view) => {
+                        make.leading.equalTo(view.prev.trailing).offset(15);
+                        make.centerY.equalTo(view.prev);
+                    },
+                },
+                {
                     type: 'blur',
                     props: {
                         id: 'category_bg',
                         style: $blurStyle.ultraThinMaterial,
                         cornerRadius: 3,
                     },
-                },
-                {
-                    type: 'label',
-                    props: {
-                        id: 'category',
-                        font: $font(14),
-                        textColor: $color('secondaryText'),
-                    },
                     layout: (make, view) => {
-                        make.leading.equalTo(view.prev.prev.trailing).offset(8);
-                        make.centerY.equalTo(view.prev.prev);
+                        make.center.equalTo(view.prev);
+                        make.width.equalTo(view.prev).offset(10);
+                        make.height.equalTo(view.prev).offset(4);
                     },
                     events: {
-                        layoutSubviews: (sender) => {
-                            const bgView = sender.prev;
-                            const f = sender.frame;
-                            bgView.frame = $rect(
-                                f.x - 5,
-                                f.y - 2,
-                                f.width + 10,
-                                f.height + 4
-                            );
+                        ready: (sender) => {
+                            sender.moveToBack();
                         },
+                    },
+                },
+                {
+                    type: 'image',
+                    props: {
+                        id: 'snapshot',
+                        cornerRadius: 5,
+                        borderWidth: 1,
+                        borderColor: $color('lightGray', 'darkGray'),
+                    },
+                    layout: (make, view) => {
+                        make.width.equalTo(SNAPSHOT_WIDTH);
+                        make.height
+                            .equalTo(view.width)
+                            .multipliedBy(CONTENT_HEIGHT_WIDTH_RATIO);
+
+                        make.top.left.bottom.inset(SNAPSHOT_INSET);
                     },
                 },
             ],
@@ -483,7 +486,7 @@ class MemoryListView {
         if (visibleRows.findIndex((v) => v === row) > -1) {
             // reload only currently visible
             const snapshotView = $(this.id).cell($indexPath(0, row)).views[0]
-                .views[0];
+                .views[5];
             snapshotView.src = path;
             snapshotView.contentMode = $contentMode.scaleToFill;
         }
@@ -507,7 +510,7 @@ class MemoryListView {
         if (visibleRows.findIndex((v) => v === row) > -1) {
             // reload only currently visible
             const snapshotView = $(this.id).cell($indexPath(0, row)).views[0]
-                .views[0];
+                .views[5];
             snapshotView.symbol = 'exclamationmark.icloud';
             snapshotView.contentMode = $contentMode.center;
         }
@@ -543,11 +546,11 @@ class MemoryListView {
                 time_info: {
                     text: mem.timeInfo,
                 },
-                category: {
-                    hidden: showCategory ? false : true,
-                    text: mem.category,
-                },
                 category_bg: {
+                    hidden: showCategory ? false : true,
+                },
+                category_text: {
+                    text: mem.category,
                     hidden: showCategory ? false : true,
                 },
             };
