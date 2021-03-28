@@ -10,6 +10,7 @@ const SWIPE_THRESHOLD = 30;
 const MIN_DESC_LEN = 5;
 const CONTENT_WIDTH = 400;
 const CONTENT_HEIGHT_WIDTH_RATIO = 2 / 3;
+const SNAPSHOT_WIDTH = 200;
 
 class SwipeableContentView extends ContentView {
     constructor(id) {
@@ -421,6 +422,7 @@ class MemorySettingView extends PopView {
             categoryPickingLabel: 'category_picking_label' + id,
             scrollView: 'scroll_view_of_' + id,
             scrollContainer: 'scroll_container_of_' + id,
+            loadingIndicator: 'loading_indicator_of_' + id,
         };
 
         this.questionSetter = new ContentSettingView(
@@ -470,8 +472,9 @@ class MemorySettingView extends PopView {
         ];
 
         const scrollView = this.makeScrollView(viewsOfMemorySettingView);
+        const loadingIndicator = this.makeLoadingIndicator();
 
-        this.addViews([scrollView]);
+        this.addViews([scrollView, loadingIndicator]);
 
         this.toRender.events['ready'] = (sender) => {
             const lastType =
@@ -621,6 +624,52 @@ class MemorySettingView extends PopView {
         ];
     }
 
+    makeLoadingIndicator() {
+        return {
+            type: 'view',
+            props: {
+                id: this.idsOfMSV.loadingIndicator,
+                hidden: true,
+                bgcolor: $rgba(0, 0, 0, 0.5),
+            },
+            layout: $layout.fill,
+            views: [
+                {
+                    type: 'blur',
+                    props: {
+                        cornerRadius: 8,
+                        style: $blurStyle.ultraThinMaterial,
+                    },
+                    layout: (make, view) => {
+                        make.center.equalTo(view.super);
+                        make.size.equalTo($size(60, 60));
+                    },
+                    views: [
+                        {
+                            type: 'spinner',
+                            props: {
+                                loading: true,
+                            },
+                            layout: $layout.center,
+                        },
+                    ],
+                },
+            ],
+        };
+    }
+
+    showLoadingIndicator() {
+        $(this.idsOfMSV.loadingIndicator).hidden = false;
+        $(this.id).userInteractionEnabled = false;
+        $(this.idsOfMSV.navBarView).userInteractionEnabled = false;
+    }
+
+    hideLoadingIndicator() {
+        $(this.idsOfMSV.loadingIndicator).hidden = true;
+        $(this.id).userInteractionEnabled = true;
+        $(this.idsOfMSV.navBarView).userInteractionEnabled = true;
+    }
+
     appear() {
         $(this.idsOfMSV.navBarView).hidden = false;
         $ui.animate({
@@ -722,65 +771,101 @@ class MemorySettingView extends PopView {
     }
 
     generateSnapshot() {
-        let qContentType = this.getType() & 1;
-        let snapshot;
-        if (qContentType == ContentType.image)
-            snapshot = $(this.questionSetter.imageViewId).snapshot;
-        else if (qContentType == ContentType.markdown)
-            snapshot = $(this.questionSetter.markdownViewId).snapshot;
-        else console.error('Error: unsupported content type.');
-        return snapshot;
+        return new Promise((resolve, reject) => {
+            const qContentType = this.getType() & 1;
+            if (qContentType == ContentType.image) {
+                const snapshot = $(this.questionSetter.imageViewId).snapshot;
+                resolve(snapshot);
+            } else if (qContentType == ContentType.markdown) {
+                const snapshotView = $ui.create({
+                    type: 'markdown',
+                    props: {
+                        theme: 'light',
+                        content: this.questionSetter.content,
+                        frame: $rect(
+                            0,
+                            0,
+                            SNAPSHOT_WIDTH,
+                            SNAPSHOT_WIDTH * CONTENT_HEIGHT_WIDTH_RATIO
+                        ),
+                    },
+                });
+                const qv = $(this.questionSetter.id);
+                qv.insertBelow(snapshotView, qv.views[0]);
+                setTimeout(() => {
+                    const snapshot = snapshotView.snapshot;
+                    resolve(snapshot);
+                    snapshotView.remove();
+                }, 500);
+            } else reject('Error: unsupported content type.');
+        });
     }
 
     async finishHandler() {
         $(this.idsOfMSV.descInput).blur();
 
-        let mem = {
+        const mem = {
             type: this.getType(),
             desc: $(this.idsOfMSV.descInput).text.trim(),
             question: this.questionSetter.content,
             answer: this.answerSetter.content,
         };
-        if (mem.desc.length >= MIN_DESC_LEN && mem.question && mem.answer) {
-            // decide category
-            let index = $(this.idsOfMSV.categoryPicker).selectedRows[0];
-            let cpItems = $(this.idsOfMSV.categoryPicker).items[0];
-            if (index == cpItems.length - 1) {
-                let newCtgy = await this.callBack.inputCategory();
-                if (!newCtgy) return;
 
-                if (!this.callBack.addCategory(newCtgy)) {
-                    $ui.warning('添加新类别失败，可能与已有类别重复');
-                    return;
-                }
-
-                mem.category = newCtgy;
-                this.setCategory(newCtgy, true);
-            } else mem.category = cpItems[index];
-
-            // generate snapshot
-            mem.snapshot = this.generateSnapshot();
-
-            if (this.editingFinish) {
-                this.callBack.modify(this.modifyingId, mem);
-
-                this.editingFinish();
-                this.editingFinish = undefined;
-
-                $ui.success('修改成功');
-                this.disappear();
-            } else {
-                this.callBack.add(mem);
-
-                this.addingFinish(mem.category);
-
-                $ui.success('添加成功');
-                this.resetContent();
-            }
-            $cache.set('using', { lastType: mem.type });
-        } else {
-            $ui.warning('描述过短或未选择图片');
+        if (mem.desc.length < MIN_DESC_LEN) {
+            $ui.warning('描述过短');
+            return;
         }
+        if (!mem.question) {
+            $ui.warning('未输入问题');
+            return;
+        }
+        if (!mem.answer) {
+            $ui.warning('未输入答案');
+            return;
+        }
+        // determine category
+        const index = $(this.idsOfMSV.categoryPicker).selectedRows[0];
+        const cpItems = $(this.idsOfMSV.categoryPicker).items[0];
+        if (index === cpItems.length - 1) {
+            // adding new category
+            const newCtgy = await this.callBack.inputCategory();
+            if (!newCtgy) return;
+            if (!this.callBack.addCategory(newCtgy)) {
+                $ui.warning('新增类别失败，类别名长度非法或与类别名重复');
+                return;
+            }
+
+            mem.category = newCtgy;
+            this.setCategory(newCtgy, true);
+        } else {
+            // picked a existing category
+            mem.category = cpItems[index];
+        }
+
+        this.showLoadingIndicator();
+        // generate snapshot
+        mem.snapshot = await this.generateSnapshot();
+        // is editing or adding
+        if (this.editingFinish) {
+            this.callBack.modify(this.modifyingId, mem);
+
+            this.editingFinish();
+            this.editingFinish = undefined;
+
+            $ui.success('修改成功');
+            this.disappear();
+        } else {
+            this.callBack.add(mem);
+
+            this.addingFinish(mem.category);
+
+            $ui.success('添加成功');
+            this.resetContent();
+        }
+        // set cache
+        $cache.set('using', { lastType: mem.type });
+        // clear loading
+        this.hideLoadingIndicator();
     }
 
     resetContent() {
