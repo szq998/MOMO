@@ -370,6 +370,33 @@ class ContentSettingView extends SwipeableContentView {
     } // makeInputAcceView
 } // class
 
+class AnswerSettingView extends ContentSettingView {
+    // markdown can be scrolled and zoomed
+    constructor(id) {
+        super(id);
+        this.setMarkdownInteractable();
+        this.markdownView.views = [
+            {
+                type: 'image',
+                props: {
+                    id: 'editing_button_of' + id,
+                    symbol: 'keyboard',
+                    contentMode: $contentMode.scaleAspectFit,
+                },
+                layout: (make, view) => {
+                    make.size.equalTo($size(40, 30));
+                    make.bottom.right.equalTo(view.super).offset(-15);
+                },
+                events: {
+                    tapped: (sender) => {
+                        this.markdownSettingHandler(sender.super);
+                    },
+                },
+            },
+        ];
+    }
+}
+
 class MemorySettingView extends PopView {
     constructor(id, callBack) {
         super(id);
@@ -399,7 +426,7 @@ class MemorySettingView extends PopView {
         this.questionSetter = new ContentSettingView(
             this.idsOfMSV.questionSetter
         );
-        this.answerSetter = new ContentSettingView(this.idsOfMSV.answerSetter);
+        this.answerSetter = new AnswerSettingView(this.idsOfMSV.answerSetter);
 
         const descInput = this.makeDescInput();
 
@@ -407,8 +434,6 @@ class MemorySettingView extends PopView {
             make.centerX.equalTo(view.super);
             make.top.equalTo($(this.idsOfMSV.descInput).bottom).offset(40);
 
-            // make.width.equalTo(CONTENT_WIDTH);
-            // make.width.lessThanOrEqualTo(view.super.width).offset(-40);
             make.width.equalTo(view.super);
             make.height
                 .equalTo(view.width)
@@ -419,8 +444,6 @@ class MemorySettingView extends PopView {
             make.centerX.equalTo(view.super);
             make.top.equalTo($(this.idsOfMSV.questionSetter).bottom).offset(40);
 
-            // make.width.equalTo(CONTENT_WIDTH);
-            // make.width.lessThanOrEqualTo(view.super.width).offset(-40);
             make.width.equalTo(view.super);
             make.height
                 .equalTo(view.width)
@@ -448,7 +471,6 @@ class MemorySettingView extends PopView {
 
         const scrollView = this.makeScrollView(viewsOfMemorySettingView);
 
-        // this.addViews(viewsOfMemorySettingView);
         this.addViews([scrollView]);
 
         this.toRender.events['ready'] = (sender) => {
