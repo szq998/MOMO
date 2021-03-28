@@ -78,6 +78,15 @@ class ContentView {
         return false;
     }
 
+    setMarkdownInteractable() {
+        if (!$(this.id)) {
+            this.markdownView.props.userInteractionEnabled = true;
+            return true;
+        }
+        console.error('Error: this method must be called before render.');
+        return false;
+    }
+
     changeType(contentType) {
         if (contentType == ContentType.image) this.contentType = contentType;
         else if (contentType == ContentType.markdown)
