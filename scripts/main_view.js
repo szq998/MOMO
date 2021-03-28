@@ -16,7 +16,7 @@ class MainView {
         this.buttonAreaID = 'button_area_of_' + this.id;
         this.loadingIndicatorID = 'loading_indicator_of_' + this.id;
 
-        let callBackForCMV = {
+        const callBackForCMV = {
             mergeCategory: callBack.mergeCategory,
             renameCategory: callBack.renameCategory,
             deleteCategory: callBack.deleteCategory,
@@ -26,7 +26,7 @@ class MainView {
             inputCategory: MainView.inputCategory,
         };
 
-        let callBackForMLV = {
+        const callBackForMLV = {
             loadResource: callBack.loadResource,
             getMemoryByPage: callBack.getMemoryByPage,
             changeContentById: callBack.changeContentById,
@@ -62,26 +62,28 @@ class MainView {
         );
 
         // set relational callback
-        callBackForCMV.doAfterCategorySwitched = () => {
-            this.memoryListView.categorySwitched();
-        };
-        callBackForCMV.doAfterCategoryRenamed = () => {
-            this.memoryListView.categoryRenamed();
-        };
+        callBackForCMV.doAfterCategorySwitched = this.memoryListView.categorySwitched.bind(
+            this.memoryListView
+        );
 
-        callBackForMLV.getCurrentCategory = () => {
-            return this.categoryMenuView.getCurrentCategory();
-        };
-        callBackForMLV.reloadCategory = () => {
-            this.categoryMenuView.reloadCategory();
-        };
+        callBackForCMV.doAfterCategoryRenamed = this.memoryListView.categoryRenamed.bind(
+            this.memoryListView
+        );
 
-        let buttonArea = this.makeButtonArea((make, view) => {
+        callBackForMLV.getCurrentCategory = this.categoryMenuView.getCurrentCategory.bind(
+            this.categoryMenuView
+        );
+
+        callBackForMLV.reloadCategory = this.categoryMenuView.reloadCategory.bind(
+            this.categoryMenuView
+        );
+
+        const buttonArea = this.makeButtonArea((make, view) => {
             make.height.equalTo(50);
             make.bottom.left.right.inset(15);
         });
 
-        let loadingIndicator = this.makeLoadingIndicator();
+        const loadingIndicator = this.makeLoadingIndicator();
 
         this.toRender = {
             type: 'view',
