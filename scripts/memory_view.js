@@ -85,7 +85,19 @@ class AnswerView extends MovableContentView {
 
         this.toRender.views.push(answerBlur);
 
-        this.setMarkdownInteractable()
+        this.setMarkdownInteractable();
+
+        this.markdownView.props.menu = {
+            items: [
+                {
+                    title: '查看',
+                    symbol: 'magnifyingglass',
+                    handler: () => {
+                        this.quickLook();
+                    },
+                },
+            ],
+        };
     } // constructor
 
     moveDown() {
