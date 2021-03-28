@@ -259,21 +259,6 @@ class MemoryListView {
                         make.centerY.equalTo(view.prev);
                     },
                 },
-
-                {
-                    type: 'label',
-                    props: {
-                        id: 'category',
-                        font: $font(14),
-                        textColor: $color('secondaryText'),
-                        // borderWidth: 1,
-                        // borderColor: $color('lightGray', 'darkGray'),
-                    },
-                    layout: (make, view) => {
-                        make.leading.equalTo(view.prev.trailing).offset(8);
-                        make.centerY.equalTo(view.prev);
-                    },
-                },
                 {
                     type: 'blur',
                     props: {
@@ -281,15 +266,28 @@ class MemoryListView {
                         style: $blurStyle.ultraThinMaterial,
                         cornerRadius: 3,
                     },
+                },
+                {
+                    type: 'label',
+                    props: {
+                        id: 'category',
+                        font: $font(14),
+                        textColor: $color('secondaryText'),
+                    },
                     layout: (make, view) => {
-                        // make.size.equalTo(view.prev)
-                        make.height.equalTo(view.prev).offset(4);
-                        make.width.equalTo(view.prev).offset(10);
-                        make.center.equalTo(view.prev);
+                        make.leading.equalTo(view.prev.prev.trailing).offset(8);
+                        make.centerY.equalTo(view.prev.prev);
                     },
                     events: {
-                        ready: (sender) => {
-                            sender.moveToBack();
+                        layoutSubviews: (sender) => {
+                            const bgView = sender.prev;
+                            const f = sender.frame;
+                            bgView.frame = $rect(
+                                f.x - 5,
+                                f.y - 2,
+                                f.width + 10,
+                                f.height + 4
+                            );
                         },
                     },
                 },
@@ -494,7 +492,7 @@ class MemoryListView {
     }
 
     loadSnapshotSuccessfully(mListOc, row, path) {
-        // set data in runtime 
+        // set data in runtime
         const snapshotOc = mListOc
             .$data()
             .$objectAtIndex(row)
@@ -506,7 +504,10 @@ class MemoryListView {
         const visibleRows = this.getIndexPathsForVisibleRows();
         if (visibleRows.findIndex((v) => v === row) > -1) {
             // reload only currently visible
-            mListOc.$reloadRowsAtIndexPaths_withRowAnimation([$indexPath(0, row)], 5)
+            const snapshotView = $(this.id).cell($indexPath(0, row)).views[0]
+                .views[0];
+            snapshotView.src = path;
+            snapshotView.contentMode = $contentMode.scaleToFill;
         }
 
         // set data in JSBox
@@ -518,7 +519,7 @@ class MemoryListView {
     }
 
     loadSnapshotFailed(mListOc, row) {
-        // set data in runtime 
+        // set data in runtime
         const snapshotOc = mListOc
             .$data()
             .$objectAtIndex(row)
@@ -530,7 +531,10 @@ class MemoryListView {
         const visibleRows = this.getIndexPathsForVisibleRows();
         if (visibleRows.findIndex((v) => v === row) > -1) {
             // reload only currently visible
-            mListOc.$reloadRowsAtIndexPaths_withRowAnimation([$indexPath(0, row)], 5)
+            const snapshotView = $(this.id).cell($indexPath(0, row)).views[0]
+                .views[0];
+            snapshotView.symbol = 'exclamationmark.icloud';
+            snapshotView.contentMode = $contentMode.center;
         }
 
         // set data in JSBox
