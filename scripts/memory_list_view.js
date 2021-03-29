@@ -520,10 +520,9 @@ class MemoryListView {
         item.snapshotLoaded = false;
     }
 
-    updateListData() {
-        // update list data
+    makeData() {
         const showCategory = this.callBack.getCurrentCategory() ? false : true;
-        $(this.id).data = this.data.map((mem) => {
+        return this.data.map((mem) => {
             const { snapshotLoaded } = mem;
             const snapshot = snapshotLoaded
                 ? {
@@ -555,6 +554,11 @@ class MemoryListView {
                 },
             };
         });
+    }
+
+    updateListData() {
+        // update list data
+        $(this.id).data = this.makeData();
         // async snapshot loading
         const mListOc = $(this.id).ocValue();
         for (let row = 0; row < this.data.length; row++) {
@@ -566,21 +570,27 @@ class MemoryListView {
                 continue;
             }
 
-            this.callBack.loadResource(path).then(
-                (_data) => {
-                    if (this.isSnapshotValidAfterLoaded(idBeforeLoad, row)) {
-                        this.loadSnapshotSuccessfully(mListOc, row, path);
+            this.callBack
+                .loadResource(path)
+                .finally(() => {
+                    if (!this.isSnapshotValidAfterLoaded(idBeforeLoad, row)) {
+                        return Promise.reject({ snapshotInvalid: true });
                     }
-                },
-                (err) => {
-                    if (this.isSnapshotValidAfterLoaded(idBeforeLoad, row)) {
+                })
+                .then(
+                    (_data) => {
+                        this.loadSnapshotSuccessfully(mListOc, row, path);
+                    },
+                    (err) => {
+                        if (err.snapshotInvalid) return;
+
+                        // only handle error from
                         console.error('Load snapshot failed.');
                         console.error(err);
 
                         this.loadSnapshotFailed(mListOc, row);
                     }
-                }
-            );
+                );
         }
     }
 

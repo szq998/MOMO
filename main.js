@@ -215,16 +215,16 @@ function loadResource(path) {
         if ($file.exists(path)) {
             resolve($file.read(path));
             // setTimeout(() => {
-            //     if (Math.random() < 0.8) resolve($file.read(path));
+            //     if (Math.random() < 1) resolve($file.read(path));
             //     else reject('123');
             //     // console.log("loaded")
-            // }, Math.random() * 2000);
+            // }, Math.random() * 3000);
         } else {
             const iCloudMetaPath = getICloudMetaPath(path);
             if (!$file.exists(iCloudMetaPath)) {
                 reject(new Error(`File at path "${path}" not found.`));
             }
-            $file.download(iCloudMetaPath).then(resolve).catch(reject);
+            resolve($file.download(iCloudMetaPath));
         }
     });
 }
