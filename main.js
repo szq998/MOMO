@@ -224,7 +224,7 @@ function loadResource(path) {
             if (!$file.exists(iCloudMetaPath)) {
                 reject(new Error(`File at path "${path}" not found.`));
             }
-            resolve($file.download(iCloudMetaPath));
+            resolve($file.download(path));
         }
     });
 }
