@@ -465,7 +465,7 @@ class MemoryListView {
         if (!item) return false;
 
         const { id: idAfterLoad, snapshotLoaded } = item;
-        if (idAfterLoad === idBeforeLoad || !snapshotLoaded) {
+        if (idAfterLoad === idBeforeLoad && !snapshotLoaded) {
             return true;
         } else {
             return false;
