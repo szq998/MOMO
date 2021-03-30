@@ -130,8 +130,10 @@ class MemoryView {
         this.callBack = callBack;
 
         this.revealed = false;
+        this.memorizing = null;
         this.loadNo = 0;
 
+        this.id = id;
         this.qViewId = 'qv';
         this.aViewId = 'av';
         this.questionView = new QuestionView(this.qViewId);
@@ -146,10 +148,12 @@ class MemoryView {
 
         this.toRender = {
             type: 'view',
+            props: { id: id },
             views: [buttonArea, memoryArea], // views
             layout: $layout.fillSafeArea,
             events: {
-                ready: (sender) => {
+                ready: () => {
+                    this.memorizing = true;
                     $(this.buttonAreaId).moveToFront();
 
                     callBack.ready();
@@ -285,7 +289,6 @@ class MemoryView {
                     },
                     events: {
                         tapped: () => {
-                            this.loadNo++;
                             this.skip();
                             // hide self
                             this.hideLoadingIndicator();
@@ -385,6 +388,8 @@ class MemoryView {
     }
 
     tryNext() {
+        if (!this.memorizing) return;
+
         this.disableButtonArea();
         this.revealed = false;
 
@@ -395,34 +400,43 @@ class MemoryView {
             loadingStartTime = Date.now();
         }, 200);
 
-        const currNo = this.loadNo;
-        this.callBack.getContent().then(
-            (mem) => {
-                if (currNo !== this.loadNo) return;
+        const currNo = ++this.loadNo;
+        this.callBack
+            .getContent()
+            .finally(() => {
+                if (!this.memorizing) {
+                    // quitted while loading
+                    return Promise.reject({ quitted: true });
+                } else if (currNo !== this.loadNo) {
+                    return Promise.reject({ memorySkipped: true });
+                }
+            })
+            .then(
+                (mem) => {
+                    elegantlyFinishLoading(
+                        scheduledLoadingIndicator,
+                        loadingStartTime,
+                        500,
+                        this.showNextContent.bind(this, mem),
+                        this.hideLoadingIndicator.bind(this)
+                    );
+                },
+                (err) => {
+                    if (err.quitted) return;
+                    if (err.memorySkipped) return;
 
-                elegantlyFinishLoading(
-                    scheduledLoadingIndicator,
-                    loadingStartTime,
-                    500,
-                    this.showNextContent.bind(this, mem),
-                    this.hideLoadingIndicator.bind(this)
-                );
-            },
-            (err) => {
-                if (currNo !== this.loadNo) return;
+                    console.error('Failed to get memory resources.');
+                    console.error(err);
 
-                console.error('Failed to get memory resources.');
-                console.error(err);
-
-                elegantlyFinishLoading(
-                    scheduledLoadingIndicator,
-                    loadingStartTime,
-                    500,
-                    this.showLoadingFailedAlert.bind(this),
-                    this.hideLoadingIndicator.bind(this)
-                );
-            }
-        );
+                    elegantlyFinishLoading(
+                        scheduledLoadingIndicator,
+                        loadingStartTime,
+                        500,
+                        this.showLoadingFailedAlert.bind(this),
+                        this.hideLoadingIndicator.bind(this)
+                    );
+                }
+            );
     }
 
     revealAnswer() {
@@ -468,6 +482,11 @@ class MemoryView {
                 },
             ],
         });
+    }
+
+    // called externally
+    quit() {
+        this.memorizing = false;
     }
 } // class
 

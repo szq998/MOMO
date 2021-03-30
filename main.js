@@ -380,6 +380,7 @@ function startMemory(memoryDB, memoryModel, memoryView, mainView) {
                             views: [memoryView.toRender],
                             events: {
                                 disappeared: () => {
+                                    memoryView.quit()
                                     mainView.refreshMemoryList();
                                 },
                             },
