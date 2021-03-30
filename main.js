@@ -1,4 +1,4 @@
-const DB_PATH = './assets/memory.db'; //"shared://test.db"
+const DB_PATH = './assets/memory.db';
 const MEMORY_RESOURCE_PATH = './assets/memory';
 
 let { elegantlyFinishLoading, getTimeInfo } = require('./scripts/utilities.js');
@@ -55,13 +55,6 @@ function main(memoryDB) {
         },
         ready: () => {
             $ui.title = memoryModel.getCurrentDescription();
-            // let currId = memoryModel.getCurrentId();
-            // let currType = memoryModel.getCurrentType();
-
-            // let content = getContent(currId, currType);
-
-            // content.type = currType;
-            // return content;
         },
     };
     const memoryView = new MemoryView('memory_view', mvCallBack);
@@ -168,7 +161,7 @@ function main(memoryDB) {
                     qPath: qPath,
                     aPath: aPath,
                     sPath: sPath,
-                }
+                };
             });
         },
     };
@@ -296,12 +289,6 @@ function getICloudMetaPath(path) {
         return cap0 + '.' + name + '.icloud';
     });
 }
-
-// function getDaysAgo(lts0) {
-//     let ts0 = new Date(new Date(lts0 * 1000).toLocaleDateString()).getTime();
-//     let ts1 = new Date(new Date().toLocaleDateString()).getTime();
-//     return parseInt((ts1 - ts0) / (1000 * 24 * 60 * 60));
-// }
 
 function getContentDir(id) {
     return MEMORY_RESOURCE_PATH + '/' + id;

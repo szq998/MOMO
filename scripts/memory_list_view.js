@@ -712,14 +712,12 @@ class MemoryListView {
         $(this.footerTextId).hidden = true;
 
         $(this.id).beginRefreshing();
-        // $(this.headerId).text = '刷新中...';
         $(this.headerId).hidden = false;
         this.nextPage = 0;
         this.data = this.getNextPageData();
         this.updateListData();
         $delay(0.5, () => {
             $(this.id).endRefreshing();
-            // $(this.headerId).text = '所有记录';
             $(this.headerId).hidden = true;
         });
     }

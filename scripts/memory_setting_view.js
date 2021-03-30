@@ -550,8 +550,9 @@ class MemorySettingView extends PopView {
                 layoutSubviews: (sender) => {
                     const height =
                         Math.min(CONTENT_WIDTH, sender.frame.width) *
-                        CONTENT_HEIGHT_WIDTH_RATIO *
-                        3 + 220;
+                            CONTENT_HEIGHT_WIDTH_RATIO *
+                            3 +
+                        220;
                     sender.contentSize = $size(0, height);
 
                     $(this.idsOfMSV.scrollContainer).frame = $rect(
@@ -636,9 +637,9 @@ class MemorySettingView extends PopView {
                 {
                     type: 'view',
                     props: {
-                bgcolor: $rgba(0, 0, 0, 0.5),
-            },
-            layout: $layout.fill,
+                        bgcolor: $rgba(0, 0, 0, 0.5),
+                    },
+                    layout: $layout.fill,
                 },
                 {
                     type: 'blur',
@@ -659,7 +660,7 @@ class MemorySettingView extends PopView {
                             layout: (make, view) => {
                                 make.centerX.equalTo(view.super);
                                 make.centerY.equalTo(view.super).offset(-10);
-                        },
+                            },
                         },
                         {
                             type: 'label',
@@ -889,7 +890,7 @@ class MemorySettingView extends PopView {
     }
 
     resetContent() {
-        $(this.idsOfMSV.scrollView).scrollToOffset($point(0, 0))
+        $(this.idsOfMSV.scrollView).scrollToOffset($point(0, 0));
         $(this.idsOfMSV.descInput).text = '';
 
         this.questionSetter.clearContent();
