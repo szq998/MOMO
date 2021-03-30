@@ -630,10 +630,16 @@ class MemorySettingView extends PopView {
             props: {
                 id: this.idsOfMSV.loadingIndicator,
                 hidden: true,
-                bgcolor: $rgba(0, 0, 0, 0.5),
             },
             layout: $layout.fill,
             views: [
+                {
+                    type: 'view',
+                    props: {
+                bgcolor: $rgba(0, 0, 0, 0.5),
+            },
+            layout: $layout.fill,
+                },
                 {
                     type: 'blur',
                     props: {
@@ -642,7 +648,7 @@ class MemorySettingView extends PopView {
                     },
                     layout: (make, view) => {
                         make.center.equalTo(view.super);
-                        make.size.equalTo($size(60, 60));
+                        make.size.equalTo($size(80, 80));
                     },
                     views: [
                         {
@@ -650,7 +656,21 @@ class MemorySettingView extends PopView {
                             props: {
                                 loading: true,
                             },
-                            layout: $layout.center,
+                            layout: (make, view) => {
+                                make.centerX.equalTo(view.super);
+                                make.centerY.equalTo(view.super).offset(-10);
+                        },
+                        },
+                        {
+                            type: 'label',
+                            props: {
+                                text: '保存中...',
+                                font: $font(12),
+                            },
+                            layout: (make, view) => {
+                                make.centerX.equalTo(view.super);
+                                make.top.equalTo(view.prev.bottom).offset(5);
+                            },
                         },
                     ],
                 },
