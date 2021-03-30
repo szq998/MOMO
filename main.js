@@ -304,19 +304,16 @@ function getContentPath(id, type) {
 }
 
 function getContent(id, type) {
-    const { qPath, aPath, sPath } = getContentPath(id, type);
+    const { qPath, aPath } = getContentPath(id, type);
 
-    return Promise.all([
-        loadResource(qPath),
-        loadResource(aPath),
-        loadResource(sPath),
-    ]).then(([qData, aData, _sData]) => {
+    return Promise.all([loadResource(qPath), loadResource(aPath)]).then(
+        ([qData, aData]) => {
         return {
             question: (type >> 0) & 1 ? $image(qPath) : qData.string,
             answer: (type >> 1) & 1 ? $image(aPath) : aData.string,
-            snapshot: $image(sPath),
         };
-    });
+        }
+    );
 }
 
 function saveContent(id, content) {
@@ -380,7 +377,7 @@ function startMemory(memoryDB, memoryModel, memoryView, mainView) {
                             views: [memoryView.toRender],
                             events: {
                                 disappeared: () => {
-                                    memoryView.quit()
+                                    memoryView.quit();
                                     mainView.refreshMemoryList();
                                 },
                             },
