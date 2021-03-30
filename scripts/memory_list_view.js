@@ -636,25 +636,32 @@ class MemoryListView {
     } // loadNextPage
 
     quickLook(contentType, path) {
-        // schedule loading indicator
-        this.loadNo++;
         this.callBack.disableInteraction();
+        // schedule loading indicator
         let loadingStartTime = null;
         const scheduledLoadingIndicator = setTimeout(() => {
             this.callBack.showLoadingIndicator(() => {
+                // do after cancellation of loading
                 this.loadNo++;
+                // immediately enable interaction
                 this.callBack.enableInteraction();
             });
             loadingStartTime = Date.now();
         }, 500);
 
-        const currNo = this.loadNo;
+        const currNo = ++this.loadNo;
         this.callBack
             .loadResource(path)
+            .finally(() => {
+                // determine whether loading cancellation happens
+                if (currNo != this.loadNo) {
+                    return Promise.reject({ quickLookCanceled: true });
+                } else {
+                    this.callBack.enableInteraction();
+                }
+            })
             .then(
                 (data) => {
-                    if (currNo !== this.loadNo) return;
-
                     elegantlyFinishLoading(
                         scheduledLoadingIndicator,
                         loadingStartTime,
@@ -681,7 +688,7 @@ class MemoryListView {
                     );
                 },
                 (err) => {
-                    if (currNo !== this.loadNo) return;
+                    if (err.quickLookCanceled) return;
 
                     console.error(
                         `Failed to preview content of path "${path}".`
@@ -698,12 +705,7 @@ class MemoryListView {
                         this.callBack.hideLoadingIndicator
                     );
                 }
-            )
-            .finally(() => {
-                if (currNo !== this.loadNo) return;
-
-                this.callBack.enableInteraction();
-            });
+            );
     } // quicklook
 
     refreshMemoryList() {
