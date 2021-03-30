@@ -376,6 +376,8 @@ class MemoryView {
     }
 
     showNextContent(mem) {
+        this.revealed = false;
+
         let { type, question, answer } = mem;
         this.questionView.reset();
         this.questionView.changeContent((type >> 0) & 1, question);
@@ -391,7 +393,6 @@ class MemoryView {
         if (!this.memorizing) return;
 
         this.disableButtonArea();
-        this.revealed = false;
 
         // schedule loading indicator
         let loadingStartTime = null;
