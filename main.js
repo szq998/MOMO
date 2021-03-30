@@ -376,7 +376,7 @@ function startMemory(memoryDB, memoryModel, memoryView, mainView) {
                             props: { title: '' },
                             views: [memoryView.toRender],
                             events: {
-                                disappeared: () => {
+                                dealloc: () => {
                                     memoryView.quit();
                                     mainView.refreshMemoryList();
                                 },
