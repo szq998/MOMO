@@ -816,7 +816,7 @@ class MemorySettingView extends PopView {
                     const snapshot = snapshotView.snapshot;
                     resolve(snapshot);
                     snapshotView.remove();
-                }, 500);
+                }, 700);
             } else reject('Error: unsupported content type.');
         });
     }
