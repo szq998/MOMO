@@ -158,6 +158,7 @@ function main(memoryDB) {
                     desc: m.description,
                     degree: m.degree,
                     timeInfo: getTimeInfo(m.time),
+                    remembered: !!m.remembered,
                     qPath: qPath,
                     aPath: aPath,
                     sPath: sPath,

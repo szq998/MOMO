@@ -205,8 +205,6 @@ class MemoryListView {
                     props: {
                         id: 'memory_desc',
                         font: $font('bold', 18),
-
-                        textColor: $color('primaryText'),
                     },
                     layout: (make, view) => {
                         make.leading
@@ -538,6 +536,9 @@ class MemoryListView {
                 snapshot,
                 memory_desc: {
                     text: mem.desc,
+                    textColor: mem.remembered
+                        ? $color('primaryText')
+                        : $color('red'),
                 },
                 degree_indicator: {
                     bgcolor: MemoryListView.DEGREE_COLORS[mem.degree],
