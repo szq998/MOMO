@@ -562,6 +562,23 @@ class MemorySettingView extends PopView {
                         height
                     );
                 },
+                didScroll: (sender) => {
+                    if (!sender.tracking) return 
+
+                    const offsetY = sender.contentOffset.y;
+                    if (offsetY < -100) {
+                        this.showCloseIndicator();
+                    } else {
+                        this.hideCloseIndicator();
+                    }
+                },
+                didEndDragging: (sender) => {
+                    const offsetY = sender.contentOffset.y;
+                    if (offsetY < -100) {
+                        this.disappear();
+                        this.hideCloseIndicator(true);
+                    }
+                },
             },
             views: [
                 {
