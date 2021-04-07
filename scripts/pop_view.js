@@ -68,7 +68,7 @@ class PopView {
                 //                    this.disappear()
                 //                },
                 touchesBegan: (sender, location) => {
-                    let target = $(this.innerViewId);
+                    const target = $(this.innerViewId);
 
                     target.info = {
                         whereTouchBegins: location.y,
@@ -76,8 +76,8 @@ class PopView {
                     };
                 },
                 touchesMoved: (sender, location) => {
-                    let target = $(this.innerViewId);
-                    let yOffset = location.y - target.info.whereTouchBegins;
+                    const target = $(this.innerViewId);
+                    const yOffset = location.y - target.info.whereTouchBegins;
                     target.frame = $rect(
                         0,
                         yOffset / 2,
@@ -85,12 +85,12 @@ class PopView {
                         target.size.height
                     );
                     // show self is going to close indicator
-                    let rootHeight = $(this.id).size.height;
-                    let closeThreshold = rootHeight > 150 ? 150 : rootHeight;
+                    const rootHeight = $(this.id).size.height;
+                    const closeThreshold = rootHeight > 150 ? 150 : rootHeight;
                     if (yOffset > closeThreshold) {
                         this.showCloseIndicator();
-                        let indicator = $(this.closeId);
-                        let f = indicator.frame;
+                        const indicator = $(this.closeId);
+                        const f = indicator.frame;
 
                         indicator.frame = $rect(
                             f.x,
@@ -103,41 +103,19 @@ class PopView {
                     }
                 },
                 touchesEnded: (sender, location) => {
-                    let rootHeight = $(this.id).size.height;
-                    let closeThreshold = rootHeight > 150 ? 150 : rootHeight;
+                    const rootHeight = $(this.id).size.height;
+                    const closeThreshold = rootHeight > 150 ? 150 : rootHeight;
 
-                    let target = $(this.innerViewId);
+                    const target = $(this.innerViewId);
 
-                    let yOffset = location.y - target.info.whereTouchBegins;
-                    let tSpan = new Date() - target.info.whenTouchBegins;
-                    let speed = (yOffset / tSpan) * 1000;
+                    const yOffset = location.y - target.info.whereTouchBegins;
+                    const tSpan = new Date() - target.info.whenTouchBegins;
+                    const speed = (yOffset / tSpan) * 1000;
 
                     if (yOffset > closeThreshold) {
                         // disappear
                         this.disappear();
-
-                        let indicator = $(this.closeId);
-                        $ui.animate({
-                            duration: 0.2,
-                            damping: 0.6,
-                            animation: () => {
-                                indicator.scale(1.5);
-                            },
-                            completion: () => {
-                                $ui.animate({
-                                    delay: 0.05,
-                                    duration: 0.15,
-                                    animation: () => {
-                                        indicator.alpha = 0;
-                                        indicator.scale(0.3);
-                                    },
-                                    completion: () => {
-                                        indicator.scale(1);
-                                        this.hideCloseIndicator();
-                                    },
-                                });
-                            },
-                        });
+                        this.hideCloseIndicator(true);
                     } else if (speed > 700) {
                         this.disappear();
                     } else {
@@ -177,26 +155,48 @@ class PopView {
     }
 
     showCloseIndicator() {
-        let indicator = $(this.closeId);
-        if (indicator.frame.y != -indicator.size.height) return;
-        else {
-            $device.taptic(2);
-            indicator.alpha = 1;
-            let f = indicator.frame;
-            $ui.animate({
-                damping: 0.4,
-                animation: () => {
-                    indicator.frame = $rect(f.x, 35, f.width, f.height);
-                },
-            });
-        }
+        const indicator = $(this.closeId);
+        if (indicator.frame.y !== -indicator.size.height) return;
+
+        $device.taptic(2);
+        indicator.alpha = 1;
+        const f = indicator.frame;
+        $ui.animate({
+            damping: 0.4,
+            animation: () => {
+                indicator.frame = $rect(f.x, 35, f.width, f.height);
+            },
+        });
     }
 
-    hideCloseIndicator() {
-        let indicator = $(this.closeId);
+    hideCloseIndicator(doClose = false) {
+        const indicator = $(this.closeId);
         if (indicator.frame.y < 35) return;
-        else {
-            let f = indicator.frame;
+
+        if (doClose) {
+            $ui.animate({
+                duration: 0.2,
+                damping: 0.6,
+                animation: () => {
+                    indicator.scale(1.5);
+                },
+                completion: () => {
+                    $ui.animate({
+                        delay: 0.05,
+                        duration: 0.15,
+                        animation: () => {
+                            indicator.alpha = 0;
+                            indicator.scale(0.3);
+                        },
+                        completion: () => {
+                            indicator.scale(1);
+                            this.hideCloseIndicator(false);
+                        },
+                    });
+                },
+            });
+        } else {
+            const f = indicator.frame;
             $ui.animate({
                 animation: () => {
                     indicator.frame = $rect(f.x, -f.height, f.width, f.height);
